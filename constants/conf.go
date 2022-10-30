@@ -89,6 +89,7 @@ var APITimeoutMapDefault = map[string]int64{
 	"openapi_downloadAttachmentV2": 50 * 1000,
 	"openapi_downloadAvatar":       30 * 1000,
 	"openapi_uploadAvatar":         30 * 1000,
+	"openapi_executeFlow":          25 * 1000,
 
 	"openapi_invokeFuncWithAuth": 16 * 60 * 1000,
 
