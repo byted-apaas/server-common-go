@@ -111,6 +111,12 @@ func IsLocalDebug(ctx context.Context) bool {
 	return GetDebugTypeFromCtx(ctx) == constants.DebugTypeLocal
 }
 
+// IsDebug 是否调试
+func IsDebug(ctx context.Context) bool {
+	debugType := GetDebugTypeFromCtx(ctx)
+	return debugType == constants.DebugTypeOnline || debugType == constants.DebugTypeLocal
+}
+
 func Int64Ptr(val int64) *int64 {
 	return &val
 }
