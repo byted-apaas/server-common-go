@@ -17,6 +17,7 @@ import (
 
 type ICredential interface {
 	// test
+	// test
 	getToken(ctx context.Context) (string, error)
 	setSystemFlag(ctx context.Context, isSystem bool)
 }
