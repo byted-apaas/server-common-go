@@ -211,3 +211,20 @@ func SetKEnvToCtxForRPC(ctx context.Context) context.Context {
 	}
 	return ctx
 }
+
+func SetUserContextMap(ctx context.Context, userCtxMap map[string]interface{}) context.Context {
+	return context.WithValue(ctx, constants.CtxUserContextMap, userCtxMap)
+}
+
+func GetUserContextMap(ctx context.Context) (res map[string]interface{}) {
+	defer func() {
+		if res == nil {
+			res = make(map[string]interface{})
+		}
+	}()
+	if ctx == nil {
+		return
+	}
+	res, _ = ctx.Value(constants.CtxUserContextMap).(map[string]interface{})
+	return res
+}

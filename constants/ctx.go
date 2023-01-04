@@ -27,4 +27,5 @@ const (
 	CtxKeyOpenapiDomain    = "KOpenapiDomain"
 	CtxKeyAGWDomain        = "KAGWDomain"
 	CtxUserContext         = "KUserContext"
+	CtxUserContextMap      = "KUserContextMap"
 )
