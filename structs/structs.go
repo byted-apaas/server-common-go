@@ -48,14 +48,27 @@ type RPCCliConf struct {
 	ConnTimeout time.Duration `yaml:"ConnTimeout" json:"ConnTimeout"`
 }
 
+// UserContext 上下文参数
 type UserContext struct {
 	Flow Flow `json:"flow"`
 }
 
+// Flow 流程相关上下文
 type Flow struct {
-	Execution FlowExecution `json:"execution"`
+	Execution FlowExecution         `json:"execution"`
+	APIName   string                `json:"apiName"`
+	Variables map[string]CfVariable `json:"variables"`
 }
 
+// CfVariable 流程变量
+type CfVariable struct {
+	Value     interface{} `json:"value"`
+	FieldType string      `json:"type"`
+	VarType   string      `json:"varType"`
+}
+
+// FlowExecution 流程实例相关
 type FlowExecution struct {
+	// 流程实例 ID
 	ID int64 `json:"id"`
 }
