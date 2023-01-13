@@ -254,6 +254,9 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 			Key:   "functionName",
 			Value: utils.GetFunctionNameFromCtx(ctx),
 		}, {
+			Key:   "source",
+			Value: strconv.Itoa(utils.GetSourceTypeFromCtx(ctx)),
+		}, {
 			Key:   "instanceID",
 			Value: strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
 		},
