@@ -57,3 +57,16 @@ const (
 	DebugTypeOnline = 1
 	DebugTypeLocal  = 2
 )
+
+const (
+	APAAS_PERSIST_FAAS_PREFIX = "x-apaas-persist-faas-"
+	PersistFaaSKeySummarized  = "x-apaas-persist-faas-summarized"
+
+	PersistFaaSKeyFaaSType = "x-apaas-persist-faas-type"
+)
+
+const (
+	FaaSTypeFunction     = "function"
+	FaaSTypeMicroService = "microService"
+	FaaSTypeOpenSDK      = "openSDK"
+)

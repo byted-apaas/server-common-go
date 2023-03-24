@@ -266,6 +266,7 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
 	switch c.Type {
 	case OpenAPIClient:
 		req.Header.Add(constants.HttpHeaderKeySDKFuncMsg, getSDKFuncMsgValue(ctx))
+		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
 	}
