@@ -228,3 +228,14 @@ func GetUserContextMap(ctx context.Context) (res map[string]interface{}) {
 	res, _ = ctx.Value(constants.CtxUserContextMap).(map[string]interface{})
 	return res
 }
+
+func IsMicroservice(ctx context.Context) bool {
+	return os.Getenv(constants.EnvKFaaSScene) == "microservice"
+}
+
+func GetFaaSType(ctx context.Context) string {
+	if IsMicroservice(ctx) {
+		return constants.FaaSTypeMicroService
+	}
+	return constants.FaaSTypeFunction
+}

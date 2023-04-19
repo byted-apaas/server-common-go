@@ -5,6 +5,7 @@ package utils
 
 import (
 	"context"
+	"strings"
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
@@ -189,4 +190,51 @@ func GetUserContext(ctx context.Context) (res structs.UserContext) {
 	}
 	res, _ = ctx.Value(constants.CtxUserContext).(structs.UserContext)
 	return res
+}
+
+func SetAPaaSPersistFaaSMapToCtx(ctx context.Context, aPaaSPersistFaaSMap map[string]string) context.Context {
+	return context.WithValue(ctx, constants.PersistFaaSKeySummarized, aPaaSPersistFaaSMap)
+}
+
+func GetAPaaSPersistFaaSMapFromCtx(ctx context.Context) (res map[string]string) {
+	defer func() {
+		if res == nil {
+			res = make(map[string]string)
+		}
+	}()
+	if ctx == nil {
+		return
+	}
+	res, _ = ctx.Value(constants.PersistFaaSKeySummarized).(map[string]string)
+	return res
+}
+
+func WithAPaaSPersistFaaSValue(ctx context.Context, key, value string) context.Context {
+	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
+	key = strings.TrimPrefix(key, constants.APAAS_PERSIST_FAAS_PREFIX)
+	m[constants.APAAS_PERSIST_FAAS_PREFIX+key] = value
+	return SetAPaaSPersistFaaSMapToCtx(ctx, m)
+}
+
+func GetAPaaSPersistFaaSValueFromCtx(ctx context.Context, key string) string {
+	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
+	if value, ok := m[key]; ok {
+		return value
+	}
+	return ""
+}
+
+func GetAPaaSPersistFaaSMapStr(ctx context.Context) string {
+	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
+	res, _ := json.Marshal(m)
+	return string(res)
+}
+
+func SetAPaaSLaneToCtx(ctx context.Context, lane string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyAPaaSLane, lane)
+}
+
+func GetAPaaSLaneFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.CtxKeyAPaaSLane).(string)
+	return cast
 }
