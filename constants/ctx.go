@@ -28,4 +28,5 @@ const (
 	CtxKeyAGWDomain        = "KAGWDomain"
 	CtxUserContext         = "KUserContext"
 	CtxUserContextMap      = "KUserContextMap"
+	CtxKeyAPaaSLane        = "K_APAAS_LANE"
 )

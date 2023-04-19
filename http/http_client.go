@@ -260,6 +260,12 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
 		req.Header.Add(constants.HttpHeaderKeyEnv, env)
 	}
 
+	// lane
+	lane := utils.GetAPaaSLaneFromCtx(ctx)
+	if lane != "" {
+		req.Header.Add(constants.HttpHeaderKeyAPaaSLane, lane)
+	}
+
 	req.Header.Add(constants.HttpHeaderKeyLogID, utils.GetLogIDFromCtx(ctx))
 
 	// divide open-api & faaS—infra

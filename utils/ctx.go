@@ -229,3 +229,12 @@ func GetAPaaSPersistFaaSMapStr(ctx context.Context) string {
 	res, _ := json.Marshal(m)
 	return string(res)
 }
+
+func SetAPaaSLaneToCtx(ctx context.Context, lane string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyAPaaSLane, lane)
+}
+
+func GetAPaaSLaneFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.CtxKeyAPaaSLane).(string)
+	return cast
+}
