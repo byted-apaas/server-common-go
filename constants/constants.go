@@ -42,6 +42,11 @@ const (
 	HttpHeaderKeyUsePPE     = "x-use-ppe"
 	HttpHeaderKeyUseBOE     = "x-use-boe"
 	HttpHeaderKeyAPaaSLane  = "Rpc-Persist-Lane-C-Apaas-Lane"
+
+	HTTPHeaderKeyAuthType = "Rpc-Persist-AUTH-TYPE"
+	AuthTypeKey           = "AUTH_TYPE"
+	AuthTypeSystem        = "system"
+	AuthTypeUser          = "user"
 )
 
 const (
