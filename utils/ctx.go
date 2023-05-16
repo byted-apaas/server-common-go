@@ -5,6 +5,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -237,4 +238,35 @@ func SetAPaaSLaneToCtx(ctx context.Context, lane string) context.Context {
 func GetAPaaSLaneFromCtx(ctx context.Context) string {
 	cast, _ := ctx.Value(constants.CtxKeyAPaaSLane).(string)
 	return cast
+}
+
+func SetUserAndAuthTypeToCtx(ctx context.Context, authType *string) context.Context {
+	userID := GetUserIDFromCtx(ctx)
+	ctx = context.WithValue(ctx, constants.HttpHeaderKeyUser, fmt.Sprintf("%d", userID))
+	if authType != nil {
+		if userID == -1 || *authType == constants.AuthTypeSystem {
+			ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeSystem)
+		} else if *authType == constants.AuthTypeUser {
+			ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeUser)
+		}
+	}
+	return ctx
+}
+
+func SetUserAndAuthTypeToHeaders(ctx context.Context, headers map[string][]string) map[string][]string {
+	if headers == nil {
+		headers = make(map[string][]string)
+	}
+
+	userID := GetUserIDFromCtx(ctx)
+	headers[constants.HttpHeaderKeyUser] = []string{fmt.Sprintf("%d", userID)}
+	if authType, ok := ctx.Value(constants.AuthTypeKey).(string); ok {
+		if userID == -1 || authType == constants.AuthTypeSystem {
+			headers[constants.HTTPHeaderKeyAuthType] = []string{constants.AuthTypeSystem}
+		} else if authType == constants.AuthTypeUser {
+			headers[constants.HTTPHeaderKeyAuthType] = []string{constants.AuthTypeUser}
+		}
+	}
+
+	return headers
 }

@@ -103,6 +103,8 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		}
 	}
 
+	headers = utils.SetUserAndAuthTypeToHeaders(ctx, headers)
+
 	for key, values := range headers {
 		for _, value := range values {
 			req.Header.Add(key, value)
