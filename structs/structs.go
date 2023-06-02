@@ -53,14 +53,14 @@ type UserContext struct {
 	Flow Flow `json:"flow"`
 }
 
-// Flow 流程相关上下文
 type Flow struct {
-	Execution FlowExecution         `json:"execution"`
-	APIName   string                `json:"apiName"`
+	Execution FlowExecution `json:"execution"`
+	APIName   string        `json:"apiName"`
+	// Deprecated: 已废弃
 	Variables map[string]CfVariable `json:"variables"`
 }
 
-// CfVariable 流程变量
+// Deprecated: 已废弃 CfVariable 流程变量
 type CfVariable struct {
 	Value     interface{} `json:"value"`
 	FieldType string      `json:"type"`
