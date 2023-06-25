@@ -72,3 +72,11 @@ type FlowExecution struct {
 	// 流程实例 ID
 	ID int64 `json:"id"`
 }
+
+type WebIDELog struct {
+	Source  string    `json:"source"`
+	Time    time.Time `json:"time"`
+	Type    string    `json:"type"`
+	Level   string    `json:"level"`
+	Message string    `json:"message"`
+}

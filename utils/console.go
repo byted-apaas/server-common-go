@@ -6,6 +6,10 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/byted-apaas/server-common-go/structs"
 
 	"github.com/sirupsen/logrus"
 )
@@ -38,6 +42,62 @@ func (m *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+const (
+	// Log Type
+	Console = "Console"
+	System  = "System"
+	Result  = "Result"
+
+	WebIDESource = "apaas-ide"
+	ISWebIDE     = "IS_WEB_IDE"
+)
+
+type WebIDELogFormatter struct {
+}
+
+func (m *WebIDELogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	// 构建日志结构体
+	log := structs.WebIDELog{
+		Source:  WebIDESource,
+		Time:    time.Now(),
+		Type:    Console,
+		Level:   WebIDELevelInfo(entry.Level),
+		Message: entry.Message,
+	}
+
+	if entry.Level == logrus.DebugLevel {
+		log.Type = Result
+	}
+
+	msg, err := JsonMarshalBytes(log)
+	if err != nil {
+		return nil, err
+	}
+
+	b.WriteString(fmt.Sprintf("%s\n", msg))
+	return b.Bytes(), nil
+}
+
+func WebIDELevelInfo(level logrus.Level) string {
+	switch level {
+	case logrus.InfoLevel:
+		return "info"
+	case logrus.ErrorLevel:
+		return "error"
+	case logrus.WarnLevel:
+		return "warn"
+	default:
+		return "info"
+	}
+}
+
 func LevelInfo(level logrus.Level) (string, int) {
 	switch level {
 	case logrus.InfoLevel:
@@ -58,7 +118,11 @@ type ConsoleLogger struct {
 }
 
 func GetConsoleLogger(logIDs ...string) *ConsoleLogger {
-	logrus.SetFormatter(&LogFormatter{})
+	if os.Getenv(ISWebIDE) == "true" {
+		logrus.SetFormatter(&WebIDELogFormatter{})
+	} else {
+		logrus.SetFormatter(&LogFormatter{})
+	}
 	logrus.SetLevel(logrus.TraceLevel)
 
 	l := &ConsoleLogger{}
