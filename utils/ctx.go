@@ -35,6 +35,32 @@ func GetTenantIDFromCtx(ctx context.Context) int64 {
 	return cast.ID
 }
 
+func SetAppInfoToCtx(ctx context.Context, appInfo *structs.AppInfo) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyApp, appInfo)
+}
+
+func GetAppInfoFromCtx(ctx context.Context) (*structs.AppInfo, error) {
+	cast, ok := ctx.Value(constants.CtxKeyApp).(*structs.AppInfo)
+	if !ok {
+		return nil, exp.InternalError("Can not find appInfo from ctx.")
+	}
+
+	return cast, nil
+}
+
+func SetEventInfoToCtx(ctx context.Context, appInfo *structs.EventInfo) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyEvent, appInfo)
+}
+
+func GetEventInfoFromCtx(ctx context.Context) (*structs.EventInfo, error) {
+	cast, ok := ctx.Value(constants.CtxKeyEvent).(*structs.EventInfo)
+	if !ok {
+		return nil, exp.InternalError("Can not find eventInfo from ctx.")
+	}
+
+	return cast, nil
+}
+
 func GetNamespaceFromCtx(ctx context.Context) string {
 	cast, ok := ctx.Value(constants.CtxKeyTenant).(*structs.Tenant)
 	if !ok {
