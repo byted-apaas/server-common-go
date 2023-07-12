@@ -8,6 +8,8 @@ const (
 	CtxKeyEnvBoe           = "KEnvBoe"
 	CtxKeyTenant           = "KTenant"
 	CtxKeyUser             = "KUser"
+	CtxKeyApp              = "KApp"
+	CtxKeyEvent            = "KEvent"
 	CtxKeyLogID            = "K_LOGID"
 	CtxKeyTriggerType      = "KTriggerType"
 	CtxKeyFunctionName     = "KFunctionName"

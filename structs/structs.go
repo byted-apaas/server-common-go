@@ -5,6 +5,9 @@ package structs
 
 import (
 	"time"
+
+	"github.com/byted-apaas/server-common-go/structs/common/i18n"
+	"github.com/byted-apaas/server-common-go/structs/common/reference"
 )
 
 type I18n []map[string]interface{}
@@ -30,6 +33,21 @@ type TenantInfo struct {
 	OutsideTenantInfo struct {
 		OutsideDomainName string `json:"outsideDomainName"`
 	} `json:"outsideTenantInfo"`
+}
+
+type AppInfo struct {
+	Namespace   string                      `json:"namespace"`
+	Label       i18n.I18nCnUs               `json:"label"`
+	Description i18n.I18nCnUs               `json:"description"`
+	CreatedAt   int64                       `json:"createdAt"`
+	CreatedBy   *reference.LookupWithAvatar `json:"createdBy"`
+}
+
+type EventInfo struct {
+	Type       string        `json:"type"`
+	Name       i18n.I18nCnUs `json:"name"`
+	ApiName    string        `json:"apiName"`
+	InstanceId int64         `json:"instanceId"`
 }
 
 type AppTokenResp struct {
