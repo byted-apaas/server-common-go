@@ -34,4 +34,5 @@ const (
 	CtxKeyAPaaSLane        = "K_APAAS_LANE"
 	CtxKeyFunctionMetaConf = "KCtxKeyFunctionMetaConf"
 	CtxKeyUnauthFieldMap   = "KCtxKeyUnauthFieldMap"
+	CtxKeyLaneID           = "KUNLUN_LANE_ID"
 )
