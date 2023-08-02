@@ -279,6 +279,7 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
+		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 	}
 }
 
