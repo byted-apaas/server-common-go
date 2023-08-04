@@ -52,6 +52,10 @@ func GetAGWDomain(ctx context.Context) string {
 			return domain
 		}
 	}
+	domain := os.Getenv(constants.EnvKInnerAPIDomain)
+	if len(domain) > 0 {
+		return domain
+	}
 	return GetAGWDomainByConf(ctx)
 }
 

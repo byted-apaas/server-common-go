@@ -13,6 +13,7 @@ const (
 	EnvKClientSecret    = "KClientSecret"
 	EnvKOpenApiDomain   = "KOpenApiDomain"
 	EnvKFaaSInfraDomain = "KFaaSInfraDomain"
+	EnvKInnerAPIDomain  = "KInnerAPIDomain"
 	EnvKFaaSScene       = "KFaaSScene"
 	EnvKFaaSType        = "KFaaSType"
 )
