@@ -13,8 +13,13 @@ import (
 const (
 	OpenapiPathGetToken  = "/auth/v1/appToken"
 	FaaSInfraPathSendLog = "/log/v1/namespaces/:namespace/logs/batchSend"
+	InnerAPIGetFunction  = "/cloudfunction/v1/namespaces/:namespace/functions/detail"
 )
 
 func GetFaaSInfraPathSendLog() string {
 	return strings.ReplaceAll(FaaSInfraPathSendLog, constants.ReplaceNamespace, utils.GetNamespace())
+}
+
+func GetInnerAPIPathGetFunction() string {
+	return strings.ReplaceAll(InnerAPIGetFunction, constants.ReplaceNamespace, utils.GetNamespace())
 }
