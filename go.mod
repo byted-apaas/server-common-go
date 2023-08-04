@@ -8,3 +8,5 @@ require (
 	github.com/tidwall/gjson v1.9.3
 	go.mongodb.org/mongo-driver v1.8.3
 )
+
+replace golang.org/x/sys => golang.org/x/sys v0.0.0-20220817070843-5a390386f1f2

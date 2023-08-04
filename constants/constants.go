@@ -47,6 +47,7 @@ const (
 	AuthTypeKey           = "AUTH_TYPE"
 	AuthTypeSystem        = "system"
 	AuthTypeUser          = "user"
+	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
 )
 
 const (
