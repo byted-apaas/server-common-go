@@ -12,7 +12,8 @@ const (
 	CtxKeyEvent            = "KEvent"
 	CtxKeyLogID            = "K_LOGID"
 	CtxKeyTriggerType      = "KTriggerType"
-	CtxKeyFunctionName     = "KFunctionName"
+	CtxKeyFunctionName     = "KFunctionName"    // functionAPIID
+	CtxKeyFunctionAPIName  = "KFunctionAPIName" // functionAPIName
 	CtxKeySourceType       = "KSourceType"
 	CtxKeyFLoggerExtra     = "KFunctionLabel"
 	CtxKeyDebugType        = "KDebugType"
@@ -31,4 +32,6 @@ const (
 	CtxUserContext         = "KUserContext"
 	CtxUserContextMap      = "KUserContextMap"
 	CtxKeyAPaaSLane        = "K_APAAS_LANE"
+	CtxKeyFunctionMetaConf = "KCtxKeyFunctionMetaConf"
+	CtxKeyUnauthFieldMap   = "KCtxKeyUnauthFieldMap"
 )
