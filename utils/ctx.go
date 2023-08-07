@@ -277,7 +277,11 @@ func SetUserAndMixAuthTypeToCtx(ctx context.Context, authType *string, isMix boo
 		if userID == -1 || *authType == constants.AuthTypeSystem {
 			ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeSystem)
 		} else if *authType == constants.AuthTypeUser {
-			ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeUser)
+			if isMix {
+				ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeMixUserSystem)
+			} else {
+				ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeUser)
+			}
 		}
 	}
 	return ctx
