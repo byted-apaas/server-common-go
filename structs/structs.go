@@ -4,7 +4,12 @@
 package structs
 
 import (
+	rawJson "encoding/json"
+	"strconv"
 	"time"
+
+	"github.com/byted-apaas/server-common-go/structs/common/i18n"
+	"github.com/byted-apaas/server-common-go/structs/common/reference"
 )
 
 type I18n []map[string]interface{}
@@ -32,6 +37,21 @@ type TenantInfo struct {
 	} `json:"outsideTenantInfo"`
 }
 
+type AppInfo struct {
+	Namespace   string                      `json:"namespace"`
+	Label       i18n.I18nCnUs               `json:"label"`
+	Description i18n.I18nCnUs               `json:"description"`
+	CreatedAt   int64                       `json:"createdAt"`
+	CreatedBy   *reference.LookupWithAvatar `json:"createdBy"`
+}
+
+type EventInfo struct {
+	Type       string        `json:"type"`
+	Name       i18n.I18nCnUs `json:"name"`
+	ApiName    string        `json:"apiName"`
+	InstanceId int64         `json:"instanceId"`
+}
+
 type AppTokenResp struct {
 	AccessToken string     `json:"accessToken"`
 	ExpireTime  int64      `json:"expireTime"`
@@ -50,7 +70,10 @@ type RPCCliConf struct {
 
 // UserContext 上下文参数
 type UserContext struct {
-	Flow Flow `json:"flow"`
+	Flow       Flow `json:"flow"`
+	Permission struct {
+		UnauthFields map[string]interface{} `json:"_unauthFields"`
+	} `json:"permission"`
 }
 
 type Flow struct {
@@ -79,4 +102,31 @@ type WebIDELog struct {
 	Type    string    `json:"type"`
 	Level   string    `json:"level"`
 	Message string    `json:"message"`
+}
+type Permission struct {
+	UnauthFields map[string]interface{} `json:"_unauthFields"`
+}
+
+type RecordOnlyID struct {
+	ID interface{} `json:"_id"`
+}
+
+func (r RecordOnlyID) GetID() (id int64) {
+	switch r.ID.(type) {
+	case int64:
+		id, _ = r.ID.(int64)
+	case string:
+		idStr, _ := r.ID.(string)
+		id, _ = strconv.ParseInt(idStr, 10, 64)
+	case rawJson.Number:
+		isNumber, _ := r.ID.(rawJson.Number)
+		id, _ = isNumber.Int64()
+	}
+	return id
+}
+
+type ParamUnauthField struct {
+	Type             string     `json:"type"`
+	UnauthFields     []string   `json:"unauthFields"`
+	UnauthFieldsList [][]string `json:"unauthFieldsList"`
 }

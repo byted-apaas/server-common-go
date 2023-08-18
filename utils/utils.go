@@ -5,11 +5,13 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
+	"github.com/byted-apaas/server-common-go/structs"
 )
 
 func GetEnv() string {
@@ -51,6 +53,10 @@ func GetAGWDomain(ctx context.Context) string {
 		if domain, _ := ctx.Value(constants.CtxKeyAGWDomain).(string); domain != "" {
 			return domain
 		}
+	}
+	domain := os.Getenv(constants.EnvKInnerAPIDomain)
+	if len(domain) > 0 {
+		return domain
 	}
 	return GetAGWDomainByConf(ctx)
 }
@@ -238,4 +244,51 @@ func GetFaaSType(ctx context.Context) string {
 		return constants.FaaSTypeMicroService
 	}
 	return constants.FaaSTypeFunction
+}
+func ToString(v interface{}) string {
+	data, _ := json.Marshal(v)
+	return string(data)
+}
+
+func GetRecordID(record interface{}) int64 {
+	if record == nil {
+		return 0
+	}
+
+	newRecord := structs.RecordOnlyID{}
+	err := Decode(record, &newRecord)
+	if err != nil {
+		fmt.Printf("GetRecordID failed, err: %+v\n", err)
+		return 0
+	}
+
+	return newRecord.GetID()
+}
+
+func ParseStrList(v interface{}) (strs []string) {
+	strList, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	for _, str := range strList {
+		if s, ok := str.(string); ok {
+			strs = append(strs, s)
+		}
+	}
+
+	return strs
+}
+
+func ParseStrsList(v interface{}) (strsList [][]string) {
+	strList, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	for _, str := range strList {
+		strsList = append(strsList, ParseStrList(str))
+	}
+
+	return strsList
 }

@@ -126,6 +126,7 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
+		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
 	}
@@ -135,6 +136,7 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
+		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
 	}
@@ -144,6 +146,7 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
+		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
 	}

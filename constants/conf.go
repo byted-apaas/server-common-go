@@ -52,6 +52,7 @@ const (
 	UploadAvatar         = "openapi_uploadAvatar"
 
 	InvokeFuncWithAuth = "openapi_invokeFuncWithAuth"
+	GetFunction        = "openapi_getFunction"
 
 	CreateMessage                          = "openapi_createMessage"
 	UpdateMessage                          = "openapi_updateMessage"
