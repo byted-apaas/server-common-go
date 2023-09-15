@@ -111,6 +111,9 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		}
 	}
 
+	// 添加Apaas的LaneID
+	req.Header.Add(constants.HTTPHeaderKeyFaaSLaneID, utils.GetFaaSLaneIDFromCtx(ctx))
+
 	c.requestCommonInfo(ctx, req)
 
 	// Timeout

@@ -35,6 +35,18 @@ func GetTenantIDFromCtx(ctx context.Context) int64 {
 	return cast.ID
 }
 
+func SetFaaSLaneIDCtx(ctx context.Context, laneID string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyLaneID, laneID)
+}
+
+func GetFaaSLaneIDFromCtx(ctx context.Context) string {
+	cast, ok := ctx.Value(constants.CtxKeyLaneID).(string)
+	if ok {
+		return cast
+	}
+	return ""
+}
+
 func SetAppInfoToCtx(ctx context.Context, appInfo *structs.AppInfo) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyApp, appInfo)
 }
