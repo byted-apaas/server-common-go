@@ -6,6 +6,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"github.com/tidwall/gjson"
 	"os"
 	"strings"
 
@@ -291,4 +292,25 @@ func ParseStrsList(v interface{}) (strsList [][]string) {
 	}
 
 	return strsList
+}
+
+func ErrorWrapper(body []byte, extra map[string]interface{}, err error) ([]byte, error) {
+	if err != nil {
+		return nil, exp.ErrWrap(err)
+	}
+
+	code := gjson.GetBytes(body, "code").String()
+	msg := gjson.GetBytes(body, "msg").String()
+	switch code {
+	case exp.SCFileDownload:
+		return body, nil
+	case exp.SCSuccess:
+		data := gjson.GetBytes(body, "data")
+		if data.Type == gjson.String {
+			return []byte(data.Str), nil
+		}
+		return []byte(data.Raw), nil
+	default:
+		return nil, exp.NewErrWithCode(code, msg, GetLogIDFromExtra(extra))
+	}
 }
