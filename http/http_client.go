@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"strings"
 	"sync"
 	"time"
@@ -133,6 +134,13 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		}
 		return nil
 	})
+
+	// TODO:STL 打印请求详情
+	dump, err := httputil.DumpRequestOut(req.WithContext(ctx), false)
+	utils.SetReqDump(string(dump))
+	if err != nil {
+		utils.SetReqDumpErr(err.Error())
+	}
 
 	var logid string
 	if resp != nil && resp.Header != nil {

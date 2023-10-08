@@ -292,3 +292,23 @@ func ParseStrsList(v interface{}) (strsList [][]string) {
 
 	return strsList
 }
+
+// TODO:STL 调试
+var req string
+var reqErr string
+
+func SetReqDump(s string) {
+	req = s
+}
+
+func GetReqDump() string {
+	return req
+}
+
+func SetReqDumpErr(s string) {
+	reqErr = s
+}
+
+func GetReqDumpErr() string {
+	return reqErr
+}
