@@ -282,7 +282,16 @@ func SetUserAndAuthTypeToCtx(ctx context.Context, authType *string) context.Cont
 	return SetUserAndMixAuthTypeToCtx(ctx, authType, false)
 }
 
+// SetUserAndMixAuthTypeToCtx 设置鉴权方式
+// - 接口级配置优先级高于函数级
+// - 函数级配置
+// - oql 接口使用 system 和 mix_user_system
+// - 除 oql 之外的接口使用 system 和 user
 func SetUserAndMixAuthTypeToCtx(ctx context.Context, authType *string, isMix bool) context.Context {
+	if authType == nil || *authType == "" {
+		authType = GetGlobalAuthType()
+	}
+
 	userID := GetUserIDFromCtx(ctx)
 	ctx = context.WithValue(ctx, constants.HttpHeaderKeyUser, fmt.Sprintf("%d", userID))
 	if authType != nil {
@@ -294,6 +303,8 @@ func SetUserAndMixAuthTypeToCtx(ctx context.Context, authType *string, isMix boo
 			} else {
 				ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeUser)
 			}
+		} else if *authType == constants.AuthTypeMixUserSystem {
+			ctx = context.WithValue(ctx, constants.AuthTypeKey, constants.AuthTypeMixUserSystem)
 		}
 	}
 	return ctx
@@ -304,9 +315,16 @@ func SetUserAndMixAuthTypeToHeaders(ctx context.Context, headers map[string][]st
 		headers = make(map[string][]string)
 	}
 
+	authType, ok := ctx.Value(constants.AuthTypeKey).(string)
+	if !ok || authType == "" {
+		if v := GetGlobalAuthType(); v != nil && *v != "" {
+			authType = *v
+		}
+	}
+
 	userID := GetUserIDFromCtx(ctx)
 	headers[constants.HttpHeaderKeyUser] = []string{fmt.Sprintf("%d", userID)}
-	if authType, ok := ctx.Value(constants.AuthTypeKey).(string); ok {
+	if authType != "" {
 		if userID == -1 || authType == constants.AuthTypeSystem {
 			headers[constants.HTTPHeaderKeyAuthType] = []string{constants.AuthTypeSystem}
 		} else if authType == constants.AuthTypeUser {
@@ -315,6 +333,8 @@ func SetUserAndMixAuthTypeToHeaders(ctx context.Context, headers map[string][]st
 			} else {
 				headers[constants.HTTPHeaderKeyAuthType] = []string{constants.AuthTypeUser}
 			}
+		} else if authType == constants.AuthTypeMixUserSystem {
+			headers[constants.HTTPHeaderKeyAuthType] = []string{constants.AuthTypeMixUserSystem}
 		}
 	}
 
