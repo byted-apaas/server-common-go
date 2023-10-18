@@ -11,6 +11,12 @@ import (
 // AppendParamsUnauthFields 处理参数中的权限
 // 提取权限信息
 func AppendParamsUnauthFields(ctx context.Context, funcAPIName string, inputOrOutput string, params interface{}, unauthFieldsMap map[string]interface{}) (context.Context, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Printf("[AppendParamsUnauthFields] Panic: %+v\n", e)
+		}
+	}()
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -53,6 +59,12 @@ func AppendParamsUnauthFields(ctx context.Context, funcAPIName string, inputOrOu
 
 // CalcParamsNeedPermission 计算参数需要的权限，返回权限信息
 func CalcParamsNeedPermission(ctx context.Context, funcAPIName string, inputOrOutput string, params interface{}) *structs.Permission {
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Printf("[AppendParamsUnauthFields] Panic: %+v\n", e)
+		}
+	}()
+
 	if params == nil {
 		return nil
 	}
@@ -81,6 +93,10 @@ func CalcParamsNeedPermission(ctx context.Context, funcAPIName string, inputOrOu
 
 	perm := structs.Permission{UnauthFields: map[string]interface{}{}}
 	for _, p := range ioParams {
+		if p == nil {
+			continue
+		}
+
 		if p.Type == "Record" {
 			id := utils.GetRecordID(data[p.Key])
 			perm.UnauthFields[p.Key] = utils.GetRecordUnauthFieldByObjectAndRecordID(ctx, p.ObjectAPIName, id)
@@ -95,6 +111,10 @@ func CalcParamsNeedPermission(ctx context.Context, funcAPIName string, inputOrOu
 			var unauthFieldsList [][]string
 			hasUnauthFields := false
 			for _, record := range newRecords {
+				if record == nil {
+					continue
+				}
+
 				unauthFields := utils.GetRecordUnauthFieldByObjectAndRecordID(ctx, p.ObjectAPIName, record.GetID())
 				if len(unauthFields) > 0 {
 					hasUnauthFields = true
@@ -128,16 +148,7 @@ func AppendUnauthFieldRecord(ctx context.Context, objectAPIName string, recordOr
 		return
 	}
 
-	unauthFieldMap := utils.GetRecordUnauthField(ctx)
-	if unauthFieldMap == nil {
-		return
-	}
-
-	if v, ok := unauthFieldMap[objectAPIName]; !ok || v == nil {
-		unauthFieldMap[objectAPIName] = map[int64][]string{}
-	}
-
-	unauthFieldMap[objectAPIName][id] = unauthFields
+	utils.WriteUnauthFieldMapWithLock(ctx, objectAPIName, id, unauthFields)
 }
 
 func AppendUnauthFieldRecordList(ctx context.Context, objectAPIName string, records interface{}, unauthFieldsList [][]string) {
@@ -159,6 +170,9 @@ func AppendUnauthFieldRecordList(ctx context.Context, objectAPIName string, reco
 
 	for i := 0; i < len(newRecords); i++ {
 		record := newRecords[i]
+		if record == nil {
+			continue
+		}
 		unauthFields := unauthFieldsList[i]
 		AppendUnauthFieldRecord(ctx, objectAPIName, record.GetID(), unauthFields)
 	}

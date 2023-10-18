@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
@@ -235,21 +236,31 @@ func SetAPaaSPersistFaaSMapToCtx(ctx context.Context, aPaaSPersistFaaSMap map[st
 	return context.WithValue(ctx, constants.PersistFaaSKeySummarized, aPaaSPersistFaaSMap)
 }
 
-func GetAPaaSPersistFaaSMapFromCtx(ctx context.Context) (res map[string]string) {
-	defer func() {
-		if res == nil {
-			res = make(map[string]string)
-		}
-	}()
+var aPaaSPersistMutex sync.Mutex
+
+func GetAPaaSPersistFaaSMapFromCtx(ctx context.Context) (copyRes map[string]string) {
+	copyRes = map[string]string{}
 	if ctx == nil {
 		return
 	}
-	res, _ = ctx.Value(constants.PersistFaaSKeySummarized).(map[string]string)
-	return res
+
+	aPaaSPersistMutex.Lock()
+	defer aPaaSPersistMutex.Unlock()
+
+	res, _ := ctx.Value(constants.PersistFaaSKeySummarized).(map[string]string)
+	// copy 是为了避免出现 map 并发读写的问题
+	for k, v := range res {
+		copyRes[k] = v
+	}
+	return
 }
 
 func WithAPaaSPersistFaaSValue(ctx context.Context, key, value string) context.Context {
 	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
+
+	aPaaSPersistMutex.Lock()
+	defer aPaaSPersistMutex.Unlock()
+
 	key = strings.TrimPrefix(key, constants.APAAS_PERSIST_FAAS_PREFIX)
 	m[constants.APAAS_PERSIST_FAAS_PREFIX+key] = value
 	return SetAPaaSPersistFaaSMapToCtx(ctx, m)
@@ -363,8 +374,8 @@ func SetFunctionMetaConfToCtx(ctx context.Context, metaConf map[string]string) c
 		functionMeta := structs.FunctionMeta{}
 		err := json.Unmarshal([]byte(conf), &functionMeta)
 		if err != nil {
-			fmt.Printf("SetFunctionMetaConfToCtx failed, err: %+v", err)
-			return nil
+			fmt.Printf("SetFunctionMetaConfToCtx failed, err: %+v\n", err)
+			return ctx
 		}
 		apiNameToMetaConf[strings.ToLower(apiName)] = &functionMeta
 	}
@@ -387,9 +398,7 @@ func GetCurFunctionMetaConfFromCtx(ctx context.Context) *structs.FunctionMeta {
 		return nil
 	}
 
-	metaConfMap, _ := ctx.Value(constants.CtxKeyFunctionMetaConf).(map[string]*structs.FunctionMeta)
-	conf, _ := metaConfMap[strings.ToLower(GetFuncAPINameFromCtx(ctx))]
-	return conf
+	return GetFunctionMetaConfFromCtx(ctx, strings.ToLower(GetFuncAPINameFromCtx(ctx)))
 }
 
 // 参数对应的无权限字段
@@ -430,13 +439,27 @@ func GetRecordUnauthField(ctx context.Context) (objToRecordIDToUnauthFields Reco
 	return objToRecordIDToUnauthFields
 }
 
+var unauthFieldMapMutex sync.Mutex
+
 func GetRecordUnauthFieldByObject(ctx context.Context, objectAPIName string) (recordIDToUnauthFields map[int64][]string) {
 	if ctx == nil {
 		return nil
 	}
 
+	// 加锁，避免并发读写问题
+	unauthFieldMapMutex.Lock()
+	defer unauthFieldMapMutex.Unlock()
 	recordIDToUnauthFields, _ = GetRecordUnauthField(ctx)[objectAPIName]
-	return recordIDToUnauthFields
+	if recordIDToUnauthFields == nil {
+		return nil
+	}
+
+	// 深 copy 避免后续 map 的并发读写问题
+	result := map[int64][]string{}
+	for recordID, unauthFields := range recordIDToUnauthFields {
+		result[recordID] = append([]string{}, unauthFields...)
+	}
+	return result
 }
 
 func GetRecordUnauthFieldByObjectAndRecordID(ctx context.Context, objectAPIName string, recordID int64) (unauthFields []string) {
@@ -445,4 +468,20 @@ func GetRecordUnauthFieldByObjectAndRecordID(ctx context.Context, objectAPIName 
 	}
 	unauthFields, _ = GetRecordUnauthFieldByObject(ctx, objectAPIName)[recordID]
 	return unauthFields
+}
+
+func WriteUnauthFieldMapWithLock(ctx context.Context, objectAPIName string, recordID int64, unauthFields []string) {
+	unauthFieldMapMutex.Lock()
+	defer unauthFieldMapMutex.Unlock()
+
+	unauthFieldMap := GetRecordUnauthField(ctx)
+	if unauthFieldMap == nil {
+		return
+	}
+
+	if v, ok := unauthFieldMap[objectAPIName]; !ok || v == nil {
+		unauthFieldMap[objectAPIName] = map[int64][]string{}
+	}
+
+	unauthFieldMap[objectAPIName][recordID] = unauthFields
 }
