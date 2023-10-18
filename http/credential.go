@@ -5,7 +5,6 @@ package http
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -104,9 +103,6 @@ func (c *AppCredential) fetchToken(ctx context.Context) (result *structs.AppToke
 	result, err = GetAppTokenHttp(ctx, c.id, c.secret)
 
 	if err != nil {
-		if strings.Contains(err.Error(), ECIllegalToken) && !c.isSystem {
-			return nil, exp.InvalidParamError(err.Error())
-		}
 		return nil, err
 	}
 
