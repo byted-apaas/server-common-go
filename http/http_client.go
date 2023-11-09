@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -113,6 +114,10 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 	// 添加Apaas的LaneID
 	req.Header.Add(constants.HTTPHeaderKeyFaaSLaneID, utils.GetFaaSLaneIDFromCtx(ctx))
+
+	// 添加ApaaS的环境标识
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvID, utils.GetFaaSEnvIDFromCtx(ctx))
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvType, fmt.Sprintf("%d", utils.GetFaaSEnvTypeFromCtx(ctx)))
 
 	c.requestCommonInfo(ctx, req)
 

@@ -35,4 +35,6 @@ const (
 	CtxKeyFunctionMetaConf = "KCtxKeyFunctionMetaConf"
 	CtxKeyUnauthFieldMap   = "KCtxKeyUnauthFieldMap"
 	CtxKeyLaneID           = "KUNLUN_LANE_ID"
+	CtxKeyEnvID            = "KUNLUN_ENV_ID"
+	CtxKeyEnvType          = "KUNLUN_ENV_TYPE"
 )
