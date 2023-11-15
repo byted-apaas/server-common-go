@@ -5,6 +5,7 @@ package exceptions
 
 import (
 	"fmt"
+	"reflect"
 )
 
 const (
@@ -67,8 +68,9 @@ const (
 )
 
 type BaseError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    string   `json:"code"`
+	Message string   `json:"message"`
+	Types   []string `json:"types"`
 	err     error
 	stack   *stack
 }
@@ -80,10 +82,18 @@ func (e *BaseError) Error() string {
 	return fmt.Sprintf("%s [%s]", e.Message, e.Code)
 }
 
+func (e *BaseError) GetErr() error {
+	if e == nil {
+		return nil
+	}
+	return e.err
+}
+
 func InternalError(format string, args ...interface{}) *BaseError {
 	return &BaseError{
 		Code:    ErrCodeInternalError,
 		Message: fmt.Sprintf(format, args...),
+		Types:   []string{"InternalError", "BaseError"},
 		err:     fmt.Errorf(format, args...),
 		stack:   callers(4, 16),
 	}
@@ -93,6 +103,7 @@ func InvalidParamError(format string, args ...interface{}) *BaseError {
 	return &BaseError{
 		Code:    ErrCodeDeveloperError,
 		Message: fmt.Sprintf(format, args...),
+		Types:   []string{"InvalidParamError", "BaseError"},
 		err:     fmt.Errorf(format, args...),
 		stack:   callers(4, 16),
 	}
@@ -102,6 +113,7 @@ func DeveloperError(format string, args ...interface{}) *BaseError {
 	return &BaseError{
 		Code:    ErrCodeDeveloperError,
 		Message: fmt.Sprintf(format, args...),
+		Types:   []string{"DeveloperError", "BaseError"},
 		err:     fmt.Errorf(format, args...),
 		stack:   callers(4, 16),
 	}
@@ -112,6 +124,7 @@ func NewErrWithCode(code, format string, args ...interface{}) *BaseError {
 	return &BaseError{
 		Code:    code,
 		Message: fmt.Sprintf(format, args...),
+		Types:   []string{"BaseError"},
 		err:     fmt.Errorf(code+", "+format, args...),
 		stack:   callers(4, 16),
 	}
@@ -121,6 +134,7 @@ func NewErrWithCodeV2(code, msg, logid string) *BaseError {
 	return &BaseError{
 		Code:    code,
 		Message: msg,
+		Types:   []string{"BaseError"},
 		err:     fmt.Errorf(fmt.Sprintf("%s [%s]（logid=%v）", msg, code, logid)),
 		stack:   callers(4, 16),
 	}
@@ -131,7 +145,7 @@ func ErrWrap(err error) *BaseError {
 		return nil
 	}
 
-	baseErr, ok := err.(*BaseError)
+	baseErr, ok := ParseBaseError(err)
 	if ok {
 		return baseErr
 	}
@@ -139,6 +153,7 @@ func ErrWrap(err error) *BaseError {
 	return &BaseError{
 		Code:    ErrCodeInternalError,
 		Message: err.Error(),
+		Types:   []string{"InternalError", "BaseError"},
 		err:     fmt.Errorf(err.Error()),
 		stack:   callers(4, 16),
 	}
@@ -149,7 +164,7 @@ func ParseErrForUser(err error) *BaseError {
 		return nil
 	}
 
-	baseErr, ok := err.(*BaseError)
+	baseErr, ok := ParseBaseError(err)
 	if ok {
 		return baseErr
 	}
@@ -157,7 +172,33 @@ func ParseErrForUser(err error) *BaseError {
 	return &BaseError{
 		Code:    ErrCodeDeveloperError,
 		Message: err.Error(),
+		Types:   []string{"DeveloperError", "BaseError"},
 		err:     fmt.Errorf(err.Error()),
 		stack:   callers(4, 16),
 	}
+}
+
+func ParseBaseError(err error) (baseError *BaseError, ok bool) {
+	if err == nil {
+		return nil, false
+	}
+
+	val := reflect.ValueOf(err)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	codeField := val.FieldByName("Code")
+	messageField := val.FieldByName("Message")
+	if !codeField.IsValid() || !messageField.IsValid() {
+		return nil, false
+	}
+
+	return &BaseError{
+		Code:    codeField.String(),
+		Message: messageField.String(),
+		Types:   []string{"BaseError"},
+		err:     fmt.Errorf(err.Error()),
+		stack:   callers(4, 16),
+	}, true
 }

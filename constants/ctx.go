@@ -35,4 +35,6 @@ const (
 	CtxKeyFunctionMetaConf = "KCtxKeyFunctionMetaConf"
 	CtxKeyUnauthFieldMap   = "KCtxKeyUnauthFieldMap"
 	CtxKeyLaneID           = "KUNLUN_LANE_ID"
+	CtxKeySDKConf          = "x-apaas-sdk-conf"
+	CtxKeyRuntimeType      = "KRuntimeType"
 )

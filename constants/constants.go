@@ -16,6 +16,9 @@ const (
 	EnvKInnerAPIDomain  = "KInnerAPIDomain"
 	EnvKFaaSScene       = "KFaaSScene"
 	EnvKFaaSType        = "KFaaSType"
+	EnvKMeshHttp        = "TCE_ENABLE_HTTP_SIDECAR_EGRESS"
+	EnvKMeshUDS         = "WITH_HTTP_MESH_EGRESS_UDS"
+	EnvKSocketAddr      = "SERVICE_MESH_HTTP_EGRESS_ADDR"
 )
 
 const (
@@ -42,7 +45,7 @@ const (
 	HttpHeaderKeyEnv        = "x-tt-env"
 	HttpHeaderKeyUsePPE     = "x-use-ppe"
 	HttpHeaderKeyUseBOE     = "x-use-boe"
-	HttpHeaderKeyAPaaSLane  = "Rpc-Persist-Lane-C-Apaas-Lane"
+	HTTPHeaderKeyAPaaSLane  = "Rpc-Persist-Lane-C-Apaas-Lane"
 	HTTPHeaderKeyFaaSLaneID = "X-Ae-Lane"
 
 	HTTPHeaderKeyAuthType = "Rpc-Persist-AUTH-TYPE"
@@ -51,6 +54,9 @@ const (
 	AuthTypeSystem        = "system"
 	AuthTypeUser          = "user"
 	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
+
+	HTTPHeaderKeyTLBEnv = "X-Tlb-Env"     // TLB 分流标签
+	TLBEnvOAPILGWGray   = "oapi_lgw_gray" // 请求至 openapi 域名后，TLB 分流至 LGW
 )
 
 const (
@@ -60,6 +66,7 @@ const (
 
 const (
 	MetaInfoFaaSSdkFuncMsgKey = "KUNLUN_FAASSDK"
+	MetaInfoAPaaSLaneKey      = "LANE_C_APAAS_LANE"
 )
 
 const (
@@ -73,6 +80,16 @@ const (
 	PersistFaaSKeySummarized  = "x-apaas-persist-faas-summarized"
 
 	PersistFaaSKeyFaaSType = "x-apaas-persist-faas-type"
+
+	PersistFaaSKeyOpenAPIRoutingType = "x-apaas-persist-faas-openapi-routing-type"
+
+	PersistFaaSKeyFromSDKName    = "x-apaas-persist-faas-from-sdk-name"
+	PersistFaaSKeyFromSDKVersion = "x-apaas-persist-faas-from-sdk-version"
+)
+
+const (
+	OpenAPIRoutingTypeToLGW      = "toLGW"
+	OpenAPIRoutingTypeToInnerAPI = "toInnerAPI"
 )
 
 const (
