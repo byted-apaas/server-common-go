@@ -122,7 +122,9 @@ func SetLogger(ctx context.Context, l *Logger) context.Context {
 func GetLogger(ctx context.Context) *Logger {
 	l, ok := ctx.Value(constants.CtxKeyLogger).(*Logger)
 	if !ok || l == nil {
-		return NewLogger(ctx)
+		return NewConsoleLogger(ctx)
+		// utils.GetConsoleLogger().Errorf("GetLogger failed !")
+		// panic("[Logger Usage Error] please make sure that your context parameter in GetLogger() method inherits from the functions Handler, rather than self-built context or an empty context.")
 	}
 
 	return l
