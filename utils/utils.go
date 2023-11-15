@@ -341,11 +341,17 @@ func ErrorWrapper(body []byte, extra map[string]interface{}, err error) ([]byte,
 	}
 }
 
-func EnableMesh(ctx context.Context) bool {
+// OpenMesh 是否开启 Mesh，有开关可以关闭 Mesh，有些场景不允许走 Mesh
+func OpenMesh(ctx context.Context) bool {
 	if IsCloseMesh(ctx) || IsDebug(ctx) || IsExternalFaaS() {
 		return false
 	}
 
+	return EnableMesh()
+}
+
+// EnableMesh 是否支持 Mesh，通过 FaaS 的环境变量来判断
+func EnableMesh() bool {
 	return IsTrueString(os.Getenv(constants.EnvKMeshHttp)) && IsTrueString(os.Getenv(constants.EnvKMeshUDS)) && GetSocketAddr() != ""
 }
 
