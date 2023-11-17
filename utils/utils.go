@@ -34,7 +34,7 @@ func GetServiceID() string {
 
 func GetOpenAPIDomain(ctx context.Context) string {
 	// 未开启迁移 LGW 灰度，走 InnerAPI 域名
-	if !CanOpenAPIRequestToLGW(ctx) {
+	if !CanOpenAPIRequestToLGW(ctx) && !IsTmpUseOpenapi(ctx) {
 		return GetAGWDomain(ctx)
 	}
 	// 开启迁移 LGW 灰度，走 OpenAPI 域名
@@ -365,4 +365,19 @@ func IsTrueString(str string) bool {
 
 func IsExternalFaaS() bool {
 	return GetFaaSPlatform() != "3"
+}
+
+type UseOpenapiKey string
+
+const (
+	useOpenapiEnabled UseOpenapiKey = "useAgwKey"
+)
+
+func SetTmpUseOpenapiToCtx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, useOpenapiEnabled, "1")
+}
+
+func IsTmpUseOpenapi(ctx context.Context) bool {
+	enabled, _ := ctx.Value(useOpenapiEnabled).(string)
+	return enabled == "1"
 }
