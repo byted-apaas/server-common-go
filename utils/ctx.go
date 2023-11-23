@@ -6,6 +6,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -353,6 +354,17 @@ func SetUserAndMixAuthTypeToCtx(ctx context.Context, authType *string, isMix boo
 		}
 	}
 	return ctx
+}
+
+func SetAPaaSPersistHeader(ctx context.Context, header http.Header) {
+	if ctx == nil {
+		return
+	}
+	if persistHeader, ok := ctx.Value(constants.PersistAPaaSKeySummarized).(map[string]string); ok {
+		for key, value := range persistHeader {
+			header.Add(key, value)
+		}
+	}
 }
 
 func SetUserAndMixAuthTypeToHeaders(ctx context.Context, headers map[string][]string, isMix bool) map[string][]string {
