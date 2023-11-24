@@ -189,6 +189,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 			// 走 mesh
 			newReq.Header.Set("destination-domain", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
+			newReq.Header.Set("destination-service", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
@@ -351,7 +352,6 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 		req.Header.Add(constants.HttpHeaderKeySDKFuncMsg, getSDKFuncMsgValue(ctx))
 		// 运行时 faas 信息透传
 		ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFaaSType, utils.GetFaaSType(ctx))
-		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 		if c.FromSDK != nil {
 			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKName, c.FromSDK.GetSDKName())
 			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKVersion, c.FromSDK.GetVersion())
