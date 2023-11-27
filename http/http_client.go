@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -151,6 +152,10 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	// 添加Apaas的LaneID
 	req.Header.Add(constants.HTTPHeaderKeyFaaSLaneID, utils.GetFaaSLaneIDFromCtx(ctx))
 
+	// 添加ApaaS的环境标识
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvID, utils.GetFaaSEnvIDFromCtx(ctx))
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvType, fmt.Sprintf("%d", utils.GetFaaSEnvTypeFromCtx(ctx)))
+
 	ctx = c.requestCommonInfo(ctx, req)
 
 	// Timeout
@@ -189,7 +194,6 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 			// 走 mesh
 			newReq.Header.Set("destination-domain", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
-			newReq.Header.Set("destination-service", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
@@ -338,9 +342,6 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 	if lane != "" {
 		req.Header.Add(constants.HTTPHeaderKeyAPaaSLane, lane)
 	}
-
-	// add aPaaS persist key
-	utils.SetAPaaSPersistHeader(ctx, req.Header)
 
 	req.Header.Add(constants.HttpHeaderKeyLogID, utils.GetLogIDFromCtx(ctx))
 

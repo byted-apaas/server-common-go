@@ -13,11 +13,7 @@ const (
 	EnvKClientSecret    = "KClientSecret"
 	EnvKOpenApiDomain   = "KOpenApiDomain"
 	EnvKFaaSInfraDomain = "KFaaSInfraDomain"
-	EnvKFaaSInfraPSM    = "KFaaSInfraPSM"
 	EnvKInnerAPIDomain  = "KInnerAPIDomain"
-	EnvKInnerAPIPSM     = "KInnerAPIPSM"
-	EnvKLGWPSM          = "KLGWPSM"
-	EnvKLGWCluster      = "KLGWCluster"
 	EnvKFaaSScene       = "KFaaSScene"
 	EnvKFaaSType        = "KFaaSType"
 	EnvKMeshHttp        = "TCE_ENABLE_HTTP_SIDECAR_EGRESS"
@@ -44,13 +40,15 @@ const (
 	HttpHeaderKeyContentType   = "Content-Type"
 	HttpHeaderKeyLogID         = "X-Tt-Logid"
 
-	HttpHeaderKeyOrgID      = "X-Kunlun-Org-Id"
-	HttpHeaderKeySDKFuncMsg = "Rpc-Persist-Kunlun-Faassdk"
-	HttpHeaderKeyEnv        = "x-tt-env"
-	HttpHeaderKeyUsePPE     = "x-use-ppe"
-	HttpHeaderKeyUseBOE     = "x-use-boe"
-	HTTPHeaderKeyAPaaSLane  = "Rpc-Persist-Lane-C-Apaas-Lane"
-	HTTPHeaderKeyFaaSLaneID = "X-Ae-Lane"
+	HttpHeaderKeyOrgID       = "X-Kunlun-Org-Id"
+	HttpHeaderKeySDKFuncMsg  = "Rpc-Persist-Kunlun-Faassdk"
+	HttpHeaderKeyEnv         = "x-tt-env"
+	HttpHeaderKeyUsePPE      = "x-use-ppe"
+	HttpHeaderKeyUseBOE      = "x-use-boe"
+	HTTPHeaderKeyAPaaSLane   = "Rpc-Persist-Lane-C-Apaas-Lane"
+	HTTPHeaderKeyFaaSLaneID  = "X-Ae-Lane"
+	HTTPHeaderKeyFaaSEnvID   = "X-Ae-EnvID"
+	HTTPHeaderKeyFaaSEnvType = "X-Ae-EnvType"
 
 	HTTPHeaderKeyAuthType = "Rpc-Persist-AUTH-TYPE"
 	AuthTypeKey           = "AUTH_TYPE"
@@ -80,8 +78,6 @@ const (
 )
 
 const (
-	APAAS_PERSIST_PREFIX      = "rpc-persist-"
-	PersistAPaaSKeySummarized = "rpc-persist-apaas-summarized"
 	APAAS_PERSIST_FAAS_PREFIX = "x-apaas-persist-faas-"
 	PersistFaaSKeySummarized  = "x-apaas-persist-faas-summarized"
 
