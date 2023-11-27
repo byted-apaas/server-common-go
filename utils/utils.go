@@ -32,14 +32,14 @@ func GetServiceID() string {
 	return os.Getenv(constants.EnvKSvcID)
 }
 
-func GetOpenAPIPSM(ctx context.Context) string {
+func GetOpenAPIPSMAndCluster(ctx context.Context) (psm string, cluster string) {
 	// 未开启迁移 LGW 灰度，走 InnerAPI
 	if !CanOpenAPIRequestToLGW(ctx) && !IsTmpUseOpenapi(ctx) {
-		return GetInnerAPIPSMFromEnv()
+		return GetInnerAPIPSMFromEnv(), "default"
 	}
 
-	// 开启迁移 LGW 灰度，走 OpenAPI 域名
-	return GetLGWPSMFromEnv()
+	// 开启迁移 LGW 灰度，走 OpenAPI
+	return GetLGWPSMFromEnv(), GetLGWClusterFromEnv()
 }
 
 func GetOpenAPIDomain(ctx context.Context) string {

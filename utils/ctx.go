@@ -41,12 +41,37 @@ func SetFaaSLaneIDCtx(ctx context.Context, laneID string) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyLaneID, laneID)
 }
 
+func SetFaaSEnvIDCtx(ctx context.Context, envID string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyEnvID, envID)
+}
+
+func SetFaaSEnvTypeCtx(ctx context.Context, envType int64) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyEnvType, envType)
+}
+
 func GetFaaSLaneIDFromCtx(ctx context.Context) string {
 	cast, ok := ctx.Value(constants.CtxKeyLaneID).(string)
 	if ok {
 		return cast
 	}
 	return ""
+}
+
+func GetFaaSEnvIDFromCtx(ctx context.Context) string {
+	cast, ok := ctx.Value(constants.CtxKeyEnvID).(string)
+	if ok {
+		return cast
+	}
+	return ""
+}
+
+// GetEnvTypeFromCtx
+func GetFaaSEnvTypeFromCtx(ctx context.Context) int64 {
+	cast, ok := ctx.Value(constants.CtxKeyEnvType).(int64)
+	if ok {
+		return cast
+	}
+	return int64(0)
 }
 
 func SetAppInfoToCtx(ctx context.Context, appInfo *structs.AppInfo) context.Context {

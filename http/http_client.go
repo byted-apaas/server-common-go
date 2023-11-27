@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -151,6 +152,10 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	// 添加Apaas的LaneID
 	req.Header.Add(constants.HTTPHeaderKeyFaaSLaneID, utils.GetFaaSLaneIDFromCtx(ctx))
 
+	// 添加ApaaS的环境标识
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvID, utils.GetFaaSEnvIDFromCtx(ctx))
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvType, fmt.Sprintf("%d", utils.GetFaaSEnvTypeFromCtx(ctx)))
+
 	ctx = c.requestCommonInfo(ctx, req)
 
 	// Timeout
@@ -162,15 +167,15 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	var err error
 
 	// OpenAPIClient
-	domainName := utils.GetOpenAPIDomain(ctx)
+	psm, cluster := utils.GetOpenAPIPSMAndCluster(ctx)
 	switch c.Type {
 	case FaaSInfraClient:
-		domainName = utils.GetFaaSInfraDomain(ctx)
+		psm, cluster = utils.GetFaaSInfraPSMFromEnv()
 	}
 
 	// 连接层超时
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
-		if utils.OpenMesh(ctx) {
+		if utils.OpenMesh(ctx) && psm != "" && cluster != "" {
 			var newReq *http.Request
 			newReq, err = http.NewRequest(req.Method, "http://127.0.0.1"+req.URL.Path, req.Body)
 			if err != nil {
@@ -188,8 +193,8 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			}
 
 			// 走 mesh
-			newReq.Header.Set("destination-domain", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
-			newReq.Header.Set("destination-service", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
+			newReq.Header.Set("destination-service", psm)
+			newReq.Header.Set("destination-cluster", psm)
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
