@@ -194,7 +194,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 			// 走 mesh
 			newReq.Header.Set("destination-service", psm)
-			newReq.Header.Set("destination-cluster", psm)
+			newReq.Header.Set("destination-cluster", cluster)
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
