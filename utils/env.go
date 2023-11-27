@@ -26,3 +26,19 @@ func GetOpenAPIDomainName() string {
 func GetFaaSInfraDomainName() string {
 	return os.Getenv("KOpenApiDomain")
 }
+
+func GetFaaSInfraPSMFromEnv() (psm string, cluster string) {
+	return os.Getenv(constants.EnvKFaaSInfraPSM), "default"
+}
+
+func GetInnerAPIPSMFromEnv() string {
+	return os.Getenv(constants.EnvKInnerAPIPSM)
+}
+
+func GetLGWPSMFromEnv() string {
+	return os.Getenv(constants.EnvKLGWPSM)
+}
+
+func GetLGWClusterFromEnv() string {
+	return os.Getenv(constants.EnvKLGWCluster)
+}

@@ -167,15 +167,15 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	var err error
 
 	// OpenAPIClient
-	domainName := utils.GetOpenAPIDomain(ctx)
+	psm, cluster := utils.GetOpenAPIPSMAndCluster(ctx)
 	switch c.Type {
 	case FaaSInfraClient:
-		domainName = utils.GetFaaSInfraDomain(ctx)
+		psm, cluster = utils.GetFaaSInfraPSMFromEnv()
 	}
 
 	// 连接层超时
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
-		if utils.OpenMesh(ctx) {
+		if utils.OpenMesh(ctx) && psm != "" && cluster != "" {
 			var newReq *http.Request
 			newReq, err = http.NewRequest(req.Method, "http://127.0.0.1"+req.URL.Path, req.Body)
 			if err != nil {
@@ -193,7 +193,8 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			}
 
 			// 走 mesh
-			newReq.Header.Set("destination-domain", strings.Replace(strings.Replace(domainName, "https://", "", 1), "http://", "", 1))
+			newReq.Header.Set("destination-service", psm)
+			newReq.Header.Set("destination-cluster", cluster)
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
