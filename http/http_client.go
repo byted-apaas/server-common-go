@@ -96,23 +96,26 @@ func GetFaaSInfraClient(ctx context.Context) *HttpClient {
 					IdleConnTimeout:     60 * time.Second,
 				},
 			},
-			MeshClient: &http.Client{
-				Transport: &http.Transport{
-					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
-						if err != nil {
-							return nil, err
-						}
-						return net.DialUnix("unix", nil, unixAddr)
-					},
-					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
-					MaxIdleConns:        1000,
-					MaxIdleConnsPerHost: 10,
-					IdleConnTimeout:     60 * time.Second,
-				},
-			},
 		}
 	})
+
+	if utils.EnableMesh() {
+		fsInfraClient.MeshClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
+					if err != nil {
+						return nil, err
+					}
+					return net.DialUnix("unix", nil, unixAddr)
+				},
+				TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
+				MaxIdleConns:        1000,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     60 * time.Second,
+			},
+		}
+	}
 	return fsInfraClient
 }
 
@@ -175,7 +178,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 	// 连接层超时
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
-		if utils.OpenMesh(ctx) && psm != "" && cluster != "" {
+		if utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil {
 			var newReq *http.Request
 			newReq, err = http.NewRequest(req.Method, "http://127.0.0.1"+req.URL.Path, req.Body)
 			if err != nil {
