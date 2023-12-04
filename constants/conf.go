@@ -9,7 +9,7 @@ const (
 	HttpClientDialTimeoutDefault = 2 * time.Second
 	HttpClientTLSTimeoutDefault  = 1 * time.Second
 
-	RpcClientConnectTimeoutDefault = 1 * time.Second
+	RpcClientConnectTimeoutDefault = 3 * time.Second
 	RpcClientRWTimeoutDefault      = 20 * time.Minute
 	APITimeoutDefault              = 12 * time.Second
 
@@ -108,20 +108,50 @@ type PlatformConf struct {
 	OpenAPIDomain   string
 	InnerAPIDomain  string
 	FaaSInfraDomain string
-	InnerAPIPSM     string
-	BOE             string
+	FaaSInfraPSM    string // Deprecated
+	InnerAPIPSM     string // Deprecated
+	BOE             string // Deprecated
 }
 
 const (
-	EnvTypeLr     string = "staging"
-	EnvTypeGray   string = "gray"
-	EnvTypeOnline string = "online"
+	EnvTypeDev     string = "developmentboe" // Deprecated
+	EnvTypeStaging string = "stagingboe"
+	EnvTypeLr      string = "staging"
+	EnvTypeGray    string = "gray"
+	EnvTypeOnline  string = "online"
 )
 
 var (
+	// EnvConfMap 配置全是外网域名，实际消费不到，优先从 env 中消费
 	EnvConfMap = map[string]PlatformConf{
-		EnvTypeLr:     {"", "https://apaas-innerapi-lr.feishu-pre.cn", "https://apaas-faasinfra-staging.bytedance.com", "", ""},
-		EnvTypeGray:   {"", "https://apaas-innerapi.feishu-pre.cn", "https://apaas-faasinfra-gray.kundou.cn", "", ""},
-		EnvTypeOnline: {"", "https://apaas-innerapi.feishu.cn", "https://apaas-faasinfra.kundou.cn", "", ""},
+		EnvTypeStaging: {
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+			BOE:             "boe",
+		},
+		EnvTypeLr: {
+			OpenAPIDomain:   "https://oapi-kunlun-staging.bytedance.com",
+			InnerAPIDomain:  "https://apaas-innerapi-lr.feishu-pre.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra-staging.bytedance.com",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
+		EnvTypeGray: {
+			OpenAPIDomain:   "https://oapi-kunlun-gray.kundou.cn",
+			InnerAPIDomain:  "https://apaas-innerapi.feishu-pre.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra-gray.kundou.cn",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
+		EnvTypeOnline: {
+			OpenAPIDomain:   "https://oapi-kunlun.kundou.cn",
+			InnerAPIDomain:  "https://apaas-innerapi.feishu.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra.kundou.cn",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
 	}
 )
