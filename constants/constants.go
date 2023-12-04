@@ -82,6 +82,8 @@ const (
 )
 
 const (
+	APAAS_PERSIST_PREFIX      = "rpc-persist-"
+	PersistAPaaSKeySummarized = "rpc-persist-apaas-summarized"
 	APAAS_PERSIST_FAAS_PREFIX = "x-apaas-persist-faas-"
 	PersistFaaSKeySummarized  = "x-apaas-persist-faas-summarized"
 
