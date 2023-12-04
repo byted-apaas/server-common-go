@@ -1,16 +1,14 @@
-// Copyright 2022 ByteDance Ltd. and/or its affiliates
-// SPDX-License-Identifier: MIT
-
 package http
 
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+
 	"github.com/byted-apaas/server-common-go/constants"
 	cExceptions "github.com/byted-apaas/server-common-go/exceptions"
 	"github.com/byted-apaas/server-common-go/structs"
 	"github.com/byted-apaas/server-common-go/utils"
-	"strconv"
 )
 
 func GetAppTokenHttp(ctx context.Context, clientID, clientSecret string) (*structs.AppTokenResp, error) {
