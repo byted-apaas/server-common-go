@@ -71,6 +71,8 @@ const (
 	GetIntegrationAppAccessToken           = "openapi_getIntegrationAppAccessToken"
 	GetDefaultIntegrationTenantAccessToken = "openapi_getDefaultIntegrationTenantAccessToken"
 	GetIntegrationTenantAccessToken        = "openapi_getIntegrationTenantAccessToken"
+	GetApprovalInstanceList                = "openapi_getApprovalInstanceList"
+	GetApprovalInstance                    = "openapi_getApprovalInstance"
 
 	GetServiceToken         = "faasinfra_getServiceToken"
 	SendLog                 = "faasinfra_sendLog"
