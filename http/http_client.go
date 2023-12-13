@@ -347,6 +347,9 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 		req.Header.Add(constants.HTTPHeaderKeyAPaaSLane, lane)
 	}
 
+	// add aPaaS persist key
+	utils.SetAPaaSPersistHeader(ctx, req.Header)
+
 	req.Header.Add(constants.HttpHeaderKeyLogID, utils.GetLogIDFromCtx(ctx))
 
 	// trace

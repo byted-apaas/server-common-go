@@ -6,6 +6,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -346,6 +347,17 @@ func GetAPaaSPersistFaaSMapStr(ctx context.Context) string {
 	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
 	res, _ := json.Marshal(m)
 	return string(res)
+}
+
+func SetAPaaSPersistHeader(ctx context.Context, header http.Header) {
+	if ctx == nil {
+		return
+	}
+	if persistHeader, ok := ctx.Value(constants.PersistAPaaSKeySummarized).(map[string]string); ok {
+		for key, value := range persistHeader {
+			header.Add(key, value)
+		}
+	}
 }
 
 func SetUserAndAuthTypeToCtx(ctx context.Context, authType *string) context.Context {
