@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -159,7 +160,15 @@ func GetEventID(ctx context.Context) string {
 	if !ok || persistHeaders == nil {
 		return ""
 	}
-	return persistHeaders[constants.HttpHeaderKeyEventID]
+	if persistHeaders[constants.HttpHeaderKeyEventID] != "" {
+		return persistHeaders[constants.HttpHeaderKeyEventID]
+	}
+	for k, v := range persistHeaders {
+		if strings.ToLower(k) == constants.HttpHeaderKeyEventID {
+			return v
+		}
+	}
+	return ""
 }
 
 func GetLegacyLoggerDisabledFromCtx(ctx context.Context) bool {

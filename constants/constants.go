@@ -46,7 +46,7 @@ const (
 
 	HttpHeaderKeyOrgID       = "X-Kunlun-Org-Id"
 	HttpHeaderKeySDKFuncMsg  = "Rpc-Persist-Kunlun-Faassdk"
-	HttpHeaderKeyEventID     = "Rpc-Persist-apaas-eventtrace-eventid"
+	HttpHeaderKeyEventID     = "rpc-persist-apaas-eventtrace-eventid"
 	HttpHeaderKeyEnv         = "x-tt-env"
 	HttpHeaderKeyUsePPE      = "x-use-ppe"
 	HttpHeaderKeyUseBOE      = "x-use-boe"

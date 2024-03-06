@@ -6,7 +6,7 @@ import (
 )
 
 // Version is server-common-go version.
-const Version = "v0.0.28-beta.3"
+const Version = "v0.0.28-beta.4"
 
 const SDKName = "byted-apaas/server-common-go"
 

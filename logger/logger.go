@@ -56,20 +56,25 @@ type ExtraInfo struct {
 }
 
 type Log struct {
-	Domain     string         `json:"domain"`
-	Type       int            `json:"type"`
-	Level      int            `json:"level"`
-	CreateTime int64          `json:"createTime"`
-	RequestID  string         `json:"RequestID"`
-	Sequence   int64          `json:"sequence"`
-	Content    string         `json:"content"`
-	ServiceID  string         `json:"serviceID"`
-	EventID    string         `json:"eventID"`
-	CtxInfo    logContextInfo `json:"ctxInfo"`
+	Domain     string    `json:"domain"`
+	Type       int       `json:"type"`
+	Level      int       `json:"level"`
+	CreateTime int64     `json:"createTime"`
+	RequestID  string    `json:"RequestID"`
+	Sequence   int64     `json:"sequence"`
+	Content    string    `json:"content"`
+	Tags       []Tag     `json:"tags"`
+	TagsI18n   []I18nTag `json:"tagsI18n"`
+	ExtraInfo  ExtraInfo `json:"extraInfo"`
+}
 
-	Tags      []Tag     `json:"tags"`
-	TagsI18n  []I18nTag `json:"tagsI18n"`
-	ExtraInfo ExtraInfo `json:"extraInfo"`
+type StreamLog struct {
+	Level      int    `json:"level"`
+	CreateTime int64  `json:"createTime"`
+	RequestID  string `json:"RequestID"`
+	Content    string `json:"content"`
+	ServiceID  string `json:"serviceID"`
+	EventID    string `json:"eventID"`
 }
 
 type Logger struct {
@@ -214,20 +219,14 @@ func Send(ctx context.Context, l *Logger) {
 	err = http.SendLog(ctx, map[string]string{"compressData": compressLog})
 }
 
-func (l *Logger) fmtStreamNormalLog(content string, level int) Log {
-	log := Log{
-		Domain:     LogDomain,
+func (l *Logger) fmtStreamNormalLog(content string, level int) StreamLog {
+	log := StreamLog{
 		RequestID:  l.RequestID,
 		Level:      level,
 		CreateTime: TimeNowMils(),
-		Sequence:   l.getSequence(),
 		Content:    content,
-		Tags:       make([]Tag, 0),
-		TagsI18n:   make([]I18nTag, 0),
-		ExtraInfo:  ExtraInfo{},
 		ServiceID:  l.ctxInfo.ServiceID,
 		EventID:    l.ctxInfo.EventID,
-		CtxInfo:    l.ctxInfo,
 	}
 	return log
 }
