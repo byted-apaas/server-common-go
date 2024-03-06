@@ -167,7 +167,7 @@ func GetLegacyLoggerDisabledFromCtx(ctx context.Context) bool {
 	if !ok || optionHeaders == nil {
 		return false
 	}
-	disabled, ok := optionHeaders[constants.gDisableLegacyLogger]
+	disabled, ok := optionHeaders[constants.DisableLegacyLogger]
 	if !ok {
 		return false
 	}

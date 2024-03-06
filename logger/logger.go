@@ -330,15 +330,16 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 func (l *Logger) getContextInfo(ctx context.Context) logContextInfo {
 	info := logContextInfo{
 		EventID:      utils.GetEventID(ctx),
-		ServiceID:    utils.GetServiceIDFromCtx(ctx),
+		ServiceID:    utils.GetServiceID(),
 		TenantID:     strconv.FormatInt(utils.GetTenantIDFromCtx(ctx), 10),
 		Namespace:    utils.GetNamespaceFromCtx(ctx),
-		SourceID:     getFunctionLoggerExtraToCtx().SourceID,
+		SourceID:     getFunctionLoggerExtraToCtx(ctx).SourceID,
 		TriggerType:  utils.GetTriggerTypeFromCtx(ctx),
 		FunctionName: utils.GetFunctionNameFromCtx(ctx),
 		Source:       strconv.Itoa(utils.GetSourceTypeFromCtx(ctx)),
 		InstanceID:   strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
 	}
+	return info
 }
 
 func (l *Logger) getTagsI18(ctx context.Context) []I18nTag {
