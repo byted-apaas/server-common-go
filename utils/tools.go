@@ -5,6 +5,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -13,6 +14,8 @@ import (
 	"io"
 	"reflect"
 	"time"
+
+	"github.com/byted-apaas/server-common-go/constants"
 )
 
 func AesDecryptText(fieldID int64, realEncryptKey []byte, encryptedText string) (originText string, err error) {
@@ -149,4 +152,24 @@ func PrintLog(contents ...interface{}) {
 	if isPrint {
 		fmt.Println()
 	}
+}
+
+func GetEventID(ctx context.Context) string {
+	persistHeaders, ok := ctx.Value(constants.PersistAPaaSKeySummarized).(map[string]string)
+	if !ok || persistHeaders == nil {
+		return ""
+	}
+	return persistHeaders[constants.HttpHeaderKeyEventID]
+}
+
+func GetLegacyLoggerDisabledFromCtx(ctx context.Context) bool {
+	optionHeaders, ok := ctx.Value(constants.HTTPInvokeOptionsHeader).(map[constants.OptionKey]string)
+	if !ok || optionHeaders == nil {
+		return false
+	}
+	disabled, ok := optionHeaders[constants.gDisableLegacyLogger]
+	if !ok {
+		return false
+	}
+	return disabled == "true"
 }

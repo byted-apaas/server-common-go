@@ -8,6 +8,7 @@ import (
 	"compress/zlib"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -55,13 +56,16 @@ type ExtraInfo struct {
 }
 
 type Log struct {
-	Domain     string `json:"domain"`
-	Type       int    `json:"type"`
-	Level      int    `json:"level"`
-	CreateTime int64  `json:"createTime"`
-	RequestID  string `json:"RequestID"`
-	Sequence   int64  `json:"sequence"`
-	Content    string `json:"content"`
+	Domain     string         `json:"domain"`
+	Type       int            `json:"type"`
+	Level      int            `json:"level"`
+	CreateTime int64          `json:"createTime"`
+	RequestID  string         `json:"RequestID"`
+	Sequence   int64          `json:"sequence"`
+	Content    string         `json:"content"`
+	ServiceID  string         `json:"serviceID"`
+	EventID    string         `json:"eventID"`
+	CtxInfo    logContextInfo `json:"ctxInfo"`
 
 	Tags      []Tag     `json:"tags"`
 	TagsI18n  []I18nTag `json:"tagsI18n"`
@@ -69,19 +73,33 @@ type Log struct {
 }
 
 type Logger struct {
-	RequestID        string
-	lock             sync.Mutex
-	logs             []string
-	tags             []Tag
-	tagsI18n         []I18nTag
-	extraInfo        ExtraInfo
-	startTriggerTime int64
-	startRuntime     int64
-	errorNum         int64
-	infoNum          int64
-	warnNum          int64
-	sequence         int64
-	isDebug          bool
+	RequestID              string
+	ctxInfo                logContextInfo
+	lock                   sync.Mutex
+	logs                   []string
+	tags                   []Tag
+	tagsI18n               []I18nTag
+	extraInfo              ExtraInfo
+	startTriggerTime       int64
+	startRuntime           int64
+	errorNum               int64
+	infoNum                int64
+	warnNum                int64
+	sequence               int64
+	isDebug                bool
+	isLegacyLoggerDisabled bool
+}
+
+type logContextInfo struct {
+	EventID      string
+	ServiceID    string
+	TenantID     string
+	Namespace    string
+	SourceID     string
+	TriggerType  string
+	FunctionName string
+	Source       string
+	InstanceID   string
 }
 
 func NewLogger(ctx context.Context) *Logger {
@@ -98,7 +116,8 @@ func NewLogger(ctx context.Context) *Logger {
 		isDebug:      utils.GetDebugTypeFromCtx(ctx) != 0,
 		sequence:     1,
 	}
-
+	l.ctxInfo = l.getContextInfo(ctx)
+	l.isLegacyLoggerDisabled = utils.GetLegacyLoggerDisabledFromCtx(ctx)
 	if !l.isDebug {
 		l.tags = l.getTags(ctx)
 		l.tagsI18n = l.getTagsI18(ctx)
@@ -161,6 +180,9 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 }
 
 func Send(ctx context.Context, l *Logger) {
+	if l.isLegacyLoggerDisabled {
+		return
+	}
 	if l.isDebug {
 		return
 	}
@@ -192,7 +214,38 @@ func Send(ctx context.Context, l *Logger) {
 	err = http.SendLog(ctx, map[string]string{"compressData": compressLog})
 }
 
+func (l *Logger) fmtStreamNormalLog(content string, level int) Log {
+	log := Log{
+		Domain:     LogDomain,
+		RequestID:  l.RequestID,
+		Level:      level,
+		CreateTime: TimeNowMils(),
+		Sequence:   l.getSequence(),
+		Content:    content,
+		Tags:       make([]Tag, 0),
+		TagsI18n:   make([]I18nTag, 0),
+		ExtraInfo:  ExtraInfo{},
+		ServiceID:  l.ctxInfo.ServiceID,
+		EventID:    l.ctxInfo.EventID,
+		CtxInfo:    l.ctxInfo,
+	}
+	return log
+}
+
+func (l *Logger) sendStreamLog(content string, level int) {
+	log := l.fmtStreamNormalLog(content, level)
+	logContent, err := json.Marshal(log)
+	if err != nil {
+		fmt.Println("invalid content")
+	}
+	fmt.Println(logContent)
+}
+
 func (l *Logger) addLog(content string, level int, logType int) {
+	l.sendStreamLog(content, level)
+	if l.isLegacyLoggerDisabled {
+		return
+	}
 	if logType == NormalLog && len(l.logs) >= LogCountLimit {
 		return
 	}
@@ -271,6 +324,20 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 			Key:   "instanceID",
 			Value: strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
 		},
+	}
+}
+
+func (l *Logger) getContextInfo(ctx context.Context) logContextInfo {
+	info := logContextInfo{
+		EventID:      utils.GetEventID(ctx),
+		ServiceID:    utils.GetServiceIDFromCtx(ctx),
+		TenantID:     strconv.FormatInt(utils.GetTenantIDFromCtx(ctx), 10),
+		Namespace:    utils.GetNamespaceFromCtx(ctx),
+		SourceID:     getFunctionLoggerExtraToCtx().SourceID,
+		TriggerType:  utils.GetTriggerTypeFromCtx(ctx),
+		FunctionName: utils.GetFunctionNameFromCtx(ctx),
+		Source:       strconv.Itoa(utils.GetSourceTypeFromCtx(ctx)),
+		InstanceID:   strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
 	}
 }
 

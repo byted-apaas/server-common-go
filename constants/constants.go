@@ -46,6 +46,7 @@ const (
 
 	HttpHeaderKeyOrgID       = "X-Kunlun-Org-Id"
 	HttpHeaderKeySDKFuncMsg  = "Rpc-Persist-Kunlun-Faassdk"
+	HttpHeaderKeyEventID     = "Rpc-Persist-apaas-eventtrace-eventid"
 	HttpHeaderKeyEnv         = "x-tt-env"
 	HttpHeaderKeyUsePPE      = "x-use-ppe"
 	HttpHeaderKeyUseBOE      = "x-use-boe"
@@ -108,4 +109,16 @@ const (
 
 const (
 	FunctionMetaConfCacheTableKey = "function-meta-conf-cache-table"
+)
+
+type HeaderContextKey string
+
+const (
+	HTTPInvokeOptionsHeader HeaderContextKey = "x-serverless-invoke-options"
+)
+
+type OptionKey string
+
+const (
+	DisableLegacyLogger OptionKey = "disableLegacyLogger"
 )

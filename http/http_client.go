@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -198,6 +199,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			// 走 mesh
 			newReq.Header.Set("destination-service", psm)
 			newReq.Header.Set("destination-cluster", cluster)
+			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
