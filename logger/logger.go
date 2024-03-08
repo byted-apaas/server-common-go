@@ -69,12 +69,13 @@ type Log struct {
 }
 
 type StreamLog struct {
-	Level      int    `json:"level"`
-	CreateTime int64  `json:"createTime"`
-	RequestID  string `json:"RequestID"`
+	Level      string `json:"k_log_level"`
+	CreateTime int64  `json:"k_create_time"`
+	RequestID  string `json:"k_requestid"`
+	LogID      string `json:"logid"`
 	Content    string `json:"content"`
-	ServiceID  string `json:"serviceID"`
-	EventID    string `json:"eventID"`
+	ServiceID  string `json:"k_microservice_id"`
+	EventID    string `json:"k_event_id"`
 }
 
 type Logger struct {
@@ -222,7 +223,8 @@ func Send(ctx context.Context, l *Logger) {
 func (l *Logger) fmtStreamNormalLog(content string, level int) StreamLog {
 	log := StreamLog{
 		RequestID:  l.RequestID,
-		Level:      level,
+		LogID:      l.RequestID,
+		Level:      fmt.Sprintf("%d", level),
 		CreateTime: TimeNowMils(),
 		Content:    content,
 		ServiceID:  l.ctxInfo.ServiceID,
