@@ -239,7 +239,7 @@ func (l *Logger) sendStreamLog(content string, level int) {
 	if err != nil {
 		fmt.Println("invalid content")
 	}
-	fmt.Println(string(logContent))
+	fmt.Println("\n" + string(logContent))
 }
 
 func (l *Logger) addLog(content string, level int, logType int) {
