@@ -121,4 +121,5 @@ type OptionKey string
 
 const (
 	DisableLegacyLogger OptionKey = "disableLegacyLogger"
+	LogLimitOption      OptionKey = "logLimitOption"
 )

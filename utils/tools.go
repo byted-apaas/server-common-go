@@ -10,6 +10,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -171,14 +172,56 @@ func GetEventID(ctx context.Context) string {
 	return ""
 }
 
+type LogLimitOption struct {
+	MaxLine       int64 `json:"max_line"`
+	MaxSize       int64 `json:"max_size"`
+	MaxLineLength int64 `json:"max_line_length"`
+}
+
+type RuntimeOption struct {
+	LogLimitOption      LogLimitOption `json:"log_limit_option"`
+	DisableLegacyLogger bool           `json:"disable_legacy_logger"`
+}
+
 func GetLegacyLoggerDisabledFromCtx(ctx context.Context) bool {
-	optionHeaders, ok := ctx.Value(constants.HTTPInvokeOptionsHeader).(map[constants.OptionKey]string)
-	if !ok || optionHeaders == nil {
+	runtimeOption := getRuntimeOption(ctx)
+	if runtimeOption == nil {
 		return false
 	}
-	disabled, ok := optionHeaders[constants.DisableLegacyLogger]
-	if !ok {
-		return false
+	return runtimeOption.DisableLegacyLogger
+}
+
+func getRuntimeOption(ctx context.Context) *RuntimeOption {
+	runtimeOptionStr, ok := ctx.Value(constants.HTTPInvokeOptionsHeader).(string)
+	if !ok || runtimeOptionStr == "" {
+		return nil
 	}
-	return disabled == "true"
+	runtimeOption := RuntimeOption{}
+	if err := json.Unmarshal([]byte(runtimeOptionStr), &runtimeOption); err != nil {
+		return nil
+	}
+	return &runtimeOption
+}
+
+func GetLogLimitOption(ctx context.Context) LogLimitOption {
+	defaultOption := LogLimitOption{
+		MaxLine:       10000,
+		MaxSize:       10 * 1024 * 1024,
+		MaxLineLength: 10000,
+	}
+	runtimeOption := getRuntimeOption(ctx)
+	if runtimeOption == nil {
+		return defaultOption
+	}
+	option := runtimeOption.LogLimitOption
+	if option.MaxLine == 0 {
+		option.MaxLine = defaultOption.MaxLine
+	}
+	if option.MaxSize == 0 {
+		option.MaxSize = defaultOption.MaxSize
+	}
+	if option.MaxLineLength == 0 {
+		option.MaxLineLength = defaultOption.MaxLineLength
+	}
+	return option
 }

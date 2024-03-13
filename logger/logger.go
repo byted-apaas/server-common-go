@@ -76,10 +76,13 @@ type StreamLog struct {
 	Content    string `json:"content"`
 	ServiceID  string `json:"k_microservice_id"`
 	EventID    string `json:"k_event_id"`
+	Index      int64  `json:"k_log_index"`
 }
 
 type Logger struct {
 	RequestID              string
+	totalLogCount          int64
+	totalLogSize           int64
 	ctxInfo                logContextInfo
 	lock                   sync.Mutex
 	logs                   []string
@@ -94,6 +97,7 @@ type Logger struct {
 	sequence               int64
 	isDebug                bool
 	isLegacyLoggerDisabled bool
+	limitOption            utils.LogLimitOption
 }
 
 type logContextInfo struct {
@@ -124,6 +128,8 @@ func NewLogger(ctx context.Context) *Logger {
 	}
 	l.ctxInfo = l.getContextInfo(ctx)
 	l.isLegacyLoggerDisabled = utils.GetLegacyLoggerDisabledFromCtx(ctx)
+	l.limitOption = utils.GetLogLimitOption(ctx)
+
 	if !l.isDebug {
 		l.tags = l.getTags(ctx)
 		l.tagsI18n = l.getTagsI18(ctx)
@@ -220,7 +226,7 @@ func Send(ctx context.Context, l *Logger) {
 	err = http.SendLog(ctx, map[string]string{"compressData": compressLog})
 }
 
-func (l *Logger) fmtStreamNormalLog(content string, level int) StreamLog {
+func (l *Logger) fmtStreamNormalLog(content string, level int, index int64) StreamLog {
 	log := StreamLog{
 		RequestID:  l.RequestID,
 		LogID:      l.RequestID,
@@ -229,12 +235,29 @@ func (l *Logger) fmtStreamNormalLog(content string, level int) StreamLog {
 		Content:    content,
 		ServiceID:  l.ctxInfo.ServiceID,
 		EventID:    l.ctxInfo.EventID,
+		Index:      index,
 	}
 	return log
 }
 
 func (l *Logger) sendStreamLog(content string, level int) {
-	log := l.fmtStreamNormalLog(content, level)
+	if len(content) > int(l.limitOption.MaxLineLength) {
+		content = content[:LogLengthLimit] + LogLengthLimitTip
+	}
+
+	index := atomic.AddInt64(&l.totalLogCount, 1)
+	curSize := atomic.AddInt64(&l.totalLogCount, int64(len([]byte(content))))
+	maxSize := l.limitOption.MaxSize
+	countLimit := l.limitOption.MaxLine
+	if index == countLimit || curSize == int64(maxSize) {
+		// the last log current function will print
+		content = "[warn] exceed log limit, following logs with be ignored."
+	} else if index > countLimit || curSize > int64(maxSize) {
+		// log will be ignored
+		return
+	}
+
+	log := l.fmtStreamNormalLog(content, level, index)
 	logContent, err := json.Marshal(log)
 	if err != nil {
 		fmt.Println("invalid content")
