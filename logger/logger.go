@@ -165,7 +165,6 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
-		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
 	}
@@ -175,7 +174,6 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
-		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
 	}
@@ -185,7 +183,6 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
-		fmt.Printf(format, args...)
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
 	}
@@ -246,10 +243,11 @@ func (l *Logger) sendStreamLog(content string, level int) {
 	}
 
 	index := atomic.AddInt64(&l.totalLogCount, 1)
-	curSize := atomic.AddInt64(&l.totalLogCount, int64(len([]byte(content))))
+	lastSize := l.totalLogSize
+	curSize := atomic.AddInt64(&l.totalLogSize, int64(len([]byte(content))))
 	maxSize := l.limitOption.MaxSize
 	countLimit := l.limitOption.MaxLine
-	if index == countLimit || curSize == int64(maxSize) {
+	if index == countLimit || (curSize >= int64(maxSize) && lastSize <= int64(maxSize)) {
 		// the last log current function will print
 		content = "[warn] exceed log limit, following logs with be ignored."
 	} else if index > countLimit || curSize > int64(maxSize) {
@@ -266,7 +264,9 @@ func (l *Logger) sendStreamLog(content string, level int) {
 }
 
 func (l *Logger) addLog(content string, level int, logType int) {
-	l.sendStreamLog(content, level)
+	if logType != AggregationLog {
+		l.sendStreamLog(content, level)
+	}
 	if l.isLegacyLoggerDisabled {
 		return
 	}
