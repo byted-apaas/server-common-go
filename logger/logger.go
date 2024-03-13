@@ -242,7 +242,7 @@ func (l *Logger) fmtStreamNormalLog(content string, level int, index int64) Stre
 
 func (l *Logger) sendStreamLog(content string, level int) {
 	if len(content) > int(l.limitOption.MaxLineLength) {
-		content = content[:LogLengthLimit] + LogLengthLimitTip
+		content = content[:l.limitOption.MaxLineLength] + LogLengthLimitTip
 	}
 
 	index := atomic.AddInt64(&l.totalLogCount, 1)
