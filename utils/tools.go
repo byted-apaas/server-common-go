@@ -10,7 +10,6 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
