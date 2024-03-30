@@ -5,6 +5,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -12,7 +13,10 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
+
+	"github.com/byted-apaas/server-common-go/constants"
 )
 
 func AesDecryptText(fieldID int64, realEncryptKey []byte, encryptedText string) (originText string, err error) {
@@ -149,4 +153,74 @@ func PrintLog(contents ...interface{}) {
 	if isPrint {
 		fmt.Println()
 	}
+}
+
+func GetEventID(ctx context.Context) string {
+	persistHeaders, ok := ctx.Value(constants.PersistAPaaSKeySummarized).(map[string]string)
+	if !ok || persistHeaders == nil {
+		return ""
+	}
+	if persistHeaders[constants.HttpHeaderKeyEventID] != "" {
+		return persistHeaders[constants.HttpHeaderKeyEventID]
+	}
+	for k, v := range persistHeaders {
+		if strings.ToLower(k) == constants.HttpHeaderKeyEventID {
+			return v
+		}
+	}
+	return ""
+}
+
+type LogLimitOption struct {
+	MaxLine       int64 `json:"max_line"`
+	MaxSize       int64 `json:"max_size"`
+	MaxLineLength int64 `json:"max_line_length"`
+}
+
+type RuntimeOption struct {
+	LogLimitOption      LogLimitOption `json:"log_limit_option"`
+	DisableLegacyLogger bool           `json:"disable_legacy_logger"`
+}
+
+func GetLegacyLoggerDisabledFromCtx(ctx context.Context) bool {
+	runtimeOption := getRuntimeOption(ctx)
+	if runtimeOption == nil {
+		return false
+	}
+	return runtimeOption.DisableLegacyLogger
+}
+
+func getRuntimeOption(ctx context.Context) *RuntimeOption {
+	runtimeOptionStr, ok := ctx.Value(constants.HTTPInvokeOptionsHeader).(string)
+	if !ok || runtimeOptionStr == "" {
+		return nil
+	}
+	runtimeOption := RuntimeOption{}
+	if err := json.Unmarshal([]byte(runtimeOptionStr), &runtimeOption); err != nil {
+		return nil
+	}
+	return &runtimeOption
+}
+
+func GetLogLimitOption(ctx context.Context) LogLimitOption {
+	defaultOption := LogLimitOption{
+		MaxLine:       10000,
+		MaxSize:       10 * 1024 * 1024,
+		MaxLineLength: 10000,
+	}
+	runtimeOption := getRuntimeOption(ctx)
+	if runtimeOption == nil {
+		return defaultOption
+	}
+	option := runtimeOption.LogLimitOption
+	if option.MaxLine == 0 {
+		option.MaxLine = defaultOption.MaxLine
+	}
+	if option.MaxSize == 0 {
+		option.MaxSize = defaultOption.MaxSize
+	}
+	if option.MaxLineLength == 0 {
+		option.MaxLineLength = defaultOption.MaxLineLength
+	}
+	return option
 }
