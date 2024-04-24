@@ -160,6 +160,5 @@ type SDKConf struct {
 }
 
 type SDKTransientConf struct {
-	IsCloseMesh        bool  `json:"isCloseMesh"`
-	MeshDestReqTimeout int64 `json:"meshDestReqTimeout"`
+	IsCloseMesh bool `json:"isCloseMesh"`
 }

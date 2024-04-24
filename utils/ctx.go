@@ -588,14 +588,6 @@ func GetSDKTransientConf(ctx context.Context) *structs.SDKTransientConf {
 	return sdkConf.TransientConf
 }
 
-func GetMeshDestReqTimeout(ctx context.Context) int64 {
-	conf := GetSDKTransientConf(ctx)
-	if conf != nil && conf.MeshDestReqTimeout > 0 {
-		return conf.MeshDestReqTimeout
-	}
-	return constants.DefaultMeshDestReqTimeout
-}
-
 func IsCloseMesh(ctx context.Context) bool {
 	transientConf := GetSDKTransientConf(ctx)
 	if transientConf == nil {

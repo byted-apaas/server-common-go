@@ -157,7 +157,3 @@ var (
 		},
 	}
 )
-
-const (
-	DefaultMeshDestReqTimeout = 60000
-)

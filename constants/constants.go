@@ -46,7 +46,6 @@ const (
 
 	HttpHeaderKeyOrgID       = "X-Kunlun-Org-Id"
 	HttpHeaderKeySDKFuncMsg  = "Rpc-Persist-Kunlun-Faassdk"
-	HttpHeaderKeyEventID     = "rpc-persist-apaas-eventtrace-eventid"
 	HttpHeaderKeyEnv         = "x-tt-env"
 	HttpHeaderKeyUsePPE      = "x-use-ppe"
 	HttpHeaderKeyUseBOE      = "x-use-boe"
@@ -61,9 +60,6 @@ const (
 	AuthTypeSystem        = "system"
 	AuthTypeUser          = "user"
 	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
-
-	HTTPHeaderKeyTLBEnv = "X-Tlb-Env"     // TLB 分流标签
-	TLBEnvOAPILGWGray   = "oapi_lgw_gray" // 请求至 openapi 域名后，TLB 分流至 LGW
 )
 
 const (
@@ -109,17 +105,4 @@ const (
 
 const (
 	FunctionMetaConfCacheTableKey = "function-meta-conf-cache-table"
-)
-
-type HeaderContextKey string
-
-const (
-	HTTPInvokeOptionsHeader HeaderContextKey = "x-serverless-invoke-options"
-)
-
-type OptionKey string
-
-const (
-	DisableLegacyLogger OptionKey = "disableLegacyLogger"
-	LogLimitOption      OptionKey = "logLimitOption"
 )

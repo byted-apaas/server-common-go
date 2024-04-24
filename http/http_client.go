@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -199,7 +198,6 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			// 走 mesh
 			newReq.Header.Set("destination-service", psm)
 			newReq.Header.Set("destination-cluster", cluster)
-			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
@@ -370,9 +368,6 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKVersion, c.FromSDK.GetVersion())
 		}
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
-		if utils.CanOpenAPIRequestToLGW(ctx) {
-			req.Header.Add(constants.HTTPHeaderKeyTLBEnv, constants.TLBEnvOAPILGWGray)
-		}
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
