@@ -368,6 +368,9 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKVersion, c.FromSDK.GetVersion())
 		}
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
+		if utils.CanOpenAPIRequestToLGW(ctx) {
+			req.Header.Add(constants.HTTPHeaderKeyTLBEnv, constants.TLBEnvOAPILGWGray)
+		}
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))

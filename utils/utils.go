@@ -33,10 +33,21 @@ func GetServiceID() string {
 }
 
 func GetOpenAPIPSMAndCluster(ctx context.Context) (psm string, cluster string) {
+	// 未开启迁移 LGW 灰度，走 InnerAPI
+	if !CanOpenAPIRequestToLGW(ctx) && !IsTmpUseOpenapi(ctx) {
+		return GetInnerAPIPSMFromEnv(), "default"
+	}
+
+	// 开启迁移 LGW 灰度，走 OpenAPI
 	return GetLGWPSMFromEnv(), GetLGWClusterFromEnv()
 }
 
 func GetOpenAPIDomain(ctx context.Context) string {
+	// 未开启迁移 LGW 灰度，走 InnerAPI 域名
+	if !CanOpenAPIRequestToLGW(ctx) && !IsTmpUseOpenapi(ctx) {
+		return GetAGWDomain(ctx)
+	}
+	// 开启迁移 LGW 灰度，走 OpenAPI 域名
 	// 取配置优先级：运行时环境变量 > 上下文 > SDK 配置文件
 	openAPIDomain := ""
 	if openAPIDomain = os.Getenv(constants.EnvKOpenApiDomain); openAPIDomain != "" {
@@ -139,6 +150,12 @@ func IsLocalDebug(ctx context.Context) bool {
 func IsDebug(ctx context.Context) bool {
 	debugType := GetDebugTypeFromCtx(ctx)
 	return debugType == constants.DebugTypeOnline || debugType == constants.DebugTypeLocal
+}
+
+// CanOpenAPIRequestToLGW Whether OpenAPI requests can be routed to LGW
+func CanOpenAPIRequestToLGW(ctx context.Context) bool {
+	routingType := GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyOpenAPIRoutingType)
+	return routingType == constants.OpenAPIRoutingTypeToLGW
 }
 
 func Int64Ptr(val int64) *int64 {
@@ -368,4 +385,9 @@ const (
 
 func SetTmpUseOpenapiToCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, useOpenapiEnabled, "1")
+}
+
+func IsTmpUseOpenapi(ctx context.Context) bool {
+	enabled, _ := ctx.Value(useOpenapiEnabled).(string)
+	return enabled == "1"
 }
