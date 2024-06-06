@@ -158,12 +158,20 @@ func GetLogIDFromCtx(ctx context.Context) string {
 }
 
 func GetExecuteIDFromCtx(ctx context.Context) string {
+	ctxJson, _ := json.Marshal(ctx)
+	fmt.Printf("ctxJson: %v", ctxJson)
 	cast, _ := ctx.Value(constants.ExecuteID).(string)
+	fmt.Printf("cast1: %v", cast)
 	if len(cast) == 0 {
-		// ExecuteIDHeaderKey 示例：invoke_function_event-7a478153-1c7f-4ca2-80ee-968194ecdeaa_6637d508-4274-40b1-a7cc-e6e21f8333f5
-		return ctx.Value(constants.EventIDHeaderKey).(string)
+		cast, _ = ctx.Value("X-Serverless-Execute-Id").(string)
+		fmt.Printf("cast2: %v", cast)
+		if len(cast) == 0 {
+			// ExecuteIDHeaderKey 示例：invoke_function_event-7a478153-1c7f-4ca2-80ee-968194ecdeaa_6637d508-4274-40b1-a7cc-e6e21f8333f5
+			cast, _ = ctx.Value(constants.EventIDHeaderKey).(string)
+			fmt.Printf("cast3: %v", cast)
+		}
 	}
-
+	fmt.Printf("cast: %v", cast)
 	return cast
 }
 
