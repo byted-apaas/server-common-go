@@ -159,7 +159,7 @@ func GetLogIDFromCtx(ctx context.Context) string {
 
 func GetExecuteIDFromCtx(ctx context.Context) string {
 	ctxJson, _ := json.Marshal(ctx)
-	fmt.Printf("ctxJson: %v", ctxJson)
+	fmt.Printf("ctxJson: %v", string(ctxJson))
 	cast, _ := ctx.Value(constants.ExecuteID).(string)
 	fmt.Printf("cast1: %v", cast)
 	if len(cast) == 0 {
