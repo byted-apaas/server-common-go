@@ -147,7 +147,8 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
 		if l.streamLogCount < LogCountLimit {
 			l.streamLogCount++
-			fmt.Printf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelInfo, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelInfo, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
 		}
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
@@ -160,7 +161,8 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
 		if l.streamLogCount < LogCountLimit {
 			l.streamLogCount++
-			fmt.Printf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelWarn, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelWarn, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
 		}
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
@@ -173,7 +175,8 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
 		if l.streamLogCount < LogCountLimit {
 			l.streamLogCount++
-			fmt.Printf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelError, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelError, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
 		}
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
