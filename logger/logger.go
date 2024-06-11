@@ -184,7 +184,7 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 }
 
 func getFormatDate() string {
-	return time.Now().Format("2010-01-02")
+	return time.Now().Format("2006-01-02")
 }
 
 type FormatLog struct {
