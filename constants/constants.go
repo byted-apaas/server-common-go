@@ -64,8 +64,7 @@ const (
 	HTTPHeaderKeyTLBEnv = "X-Tlb-Env"     // TLB 分流标签
 	TLBEnvOAPILGWGray   = "oapi_lgw_gray" // 请求至 openapi 域名后，TLB 分流至 LGW
 
-	ExecuteID        = "x-serverless-execute-id"
-	EventIDHeaderKey = "rpc-persist-apaas-eventtrace-eventid"
+	ExecuteID = "x-serverless-execute-id"
 )
 
 const (
