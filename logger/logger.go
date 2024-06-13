@@ -15,6 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/golang-module/carbon/v2"
+
 	"github.com/byted-apaas/server-common-go/constants"
 	"github.com/byted-apaas/server-common-go/http"
 	"github.com/byted-apaas/server-common-go/structs"
@@ -31,8 +33,8 @@ const (
 	LogLevelWarn  = 5
 	LogLevelInfo  = 6
 
-	LogCountLimit     = 2000
-	LogLengthLimit    = 100
+	LogCountLimit     = 10000
+	LogLengthLimit    = 10000
 	LogLengthLimitTip = `\n... The log has been truncated because it exceeds the length limit.`
 	LogCountLimitTip  = `The log has been discarded because it exceeded the limit of  10000`
 )
@@ -211,7 +213,7 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 		Level:      level,
 		EventID:    l.executeID,
 		LogID:      l.RequestID,
-		Timestamp:  time.Now().UnixMilli(),
+		Timestamp:  carbon.Now().TimestampMicro(), // 使用微秒，golang 1.16 版本不支持 time.Now().UnixMicro()
 		Message:    content,
 		TenantID:   l.tenantID,
 		TenantType: l.tenantType,
