@@ -15,8 +15,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang-module/carbon/v2"
-
 	"github.com/byted-apaas/server-common-go/constants"
 	"github.com/byted-apaas/server-common-go/http"
 	"github.com/byted-apaas/server-common-go/structs"
@@ -213,7 +211,7 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 		Level:      level,
 		EventID:    l.executeID,
 		LogID:      l.RequestID,
-		Timestamp:  carbon.Now().TimestampMicro(), // 使用微秒，golang 1.16 版本不支持 time.Now().UnixMicro()
+		Timestamp:  time.Now().UnixNano() / 1e3, // 使用微秒
 		Message:    content,
 		TenantID:   l.tenantID,
 		TenantType: l.tenantType,
