@@ -31,8 +31,8 @@ const (
 	LogLevelWarn  = 5
 	LogLevelInfo  = 6
 
-	LogCountLimit     = 10
-	LogLengthLimit    = 10
+	LogCountLimit     = 10000
+	LogLengthLimit    = 10000
 	LogLengthLimitTip = `\n... The log has been truncated because it exceeds the length limit.`
 	LogCountLimitTip  = `The log has been discarded because it exceeded the limit of  10000`
 )
