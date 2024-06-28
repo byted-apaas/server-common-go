@@ -56,60 +56,38 @@ type ExtraInfo struct {
 }
 
 type Log struct {
-	Domain     string    `json:"domain"`
-	Type       int       `json:"type"`
-	Level      int       `json:"level"`
-	CreateTime int64     `json:"createTime"`
-	RequestID  string    `json:"RequestID"`
-	Sequence   int64     `json:"sequence"`
-	Content    string    `json:"content"`
-	Tags       []Tag     `json:"tags"`
-	TagsI18n   []I18nTag `json:"tagsI18n"`
-	ExtraInfo  ExtraInfo `json:"extraInfo"`
-}
-
-type StreamLog struct {
-	Level      string `json:"k_log_level"`
-	CreateTime int64  `json:"k_create_time"`
-	RequestID  string `json:"k_requestid"`
-	LogID      string `json:"logid"`
+	Domain     string `json:"domain"`
+	Type       int    `json:"type"`
+	Level      int    `json:"level"`
+	CreateTime int64  `json:"createTime"`
+	RequestID  string `json:"RequestID"`
+	Sequence   int64  `json:"sequence"`
 	Content    string `json:"content"`
-	ServiceID  string `json:"k_microservice_id"`
-	EventID    string `json:"k_event_id"`
-	Index      int64  `json:"k_log_index"`
+
+	Tags      []Tag     `json:"tags"`
+	TagsI18n  []I18nTag `json:"tagsI18n"`
+	ExtraInfo ExtraInfo `json:"extraInfo"`
 }
 
 type Logger struct {
-	RequestID              string
-	totalLogCount          int64
-	totalLogSize           int64
-	ctxInfo                logContextInfo
-	lock                   sync.Mutex
-	logs                   []string
-	tags                   []Tag
-	tagsI18n               []I18nTag
-	extraInfo              ExtraInfo
-	startTriggerTime       int64
-	startRuntime           int64
-	errorNum               int64
-	infoNum                int64
-	warnNum                int64
-	sequence               int64
-	isDebug                bool
-	isLegacyLoggerDisabled bool
-	limitOption            utils.LogLimitOption
-}
-
-type logContextInfo struct {
-	EventID      string
-	ServiceID    string
-	TenantID     string
-	Namespace    string
-	SourceID     string
-	TriggerType  string
-	FunctionName string
-	Source       string
-	InstanceID   string
+	RequestID        string
+	executeID        string
+	tenantID         int64
+	namespace        string
+	tenantType       int64
+	lock             sync.Mutex
+	logs             []string
+	tags             []Tag
+	tagsI18n         []I18nTag
+	extraInfo        ExtraInfo
+	startTriggerTime int64
+	startRuntime     int64
+	errorNum         int64
+	infoNum          int64
+	warnNum          int64
+	sequence         int64
+	isDebug          bool
+	streamLogCount   int64
 }
 
 func NewLogger(ctx context.Context) *Logger {
@@ -117,18 +95,20 @@ func NewLogger(ctx context.Context) *Logger {
 		lock:             sync.Mutex{},
 		logs:             make([]string, 0),
 		RequestID:        utils.GetLogIDFromCtx(ctx),
+		executeID:        utils.GetExecuteIDFromCtx(ctx),
+		tenantID:         utils.GetTenantIDFromCtx(ctx),
+		namespace:        utils.GetNamespaceFromCtx(ctx),
+		tenantType:       utils.GetTenantTypeFromCtx(ctx),
 		startTriggerTime: getFunctionLoggerExtraToCtx(ctx).StartTriggerTime,
 
-		startRuntime: time.Now().UnixNano() / int64(time.Millisecond),
-		errorNum:     0,
-		infoNum:      0,
-		warnNum:      0,
-		isDebug:      utils.GetDebugTypeFromCtx(ctx) != 0,
-		sequence:     1,
+		startRuntime:   time.Now().UnixNano() / int64(time.Millisecond),
+		errorNum:       0,
+		infoNum:        0,
+		warnNum:        0,
+		isDebug:        utils.GetDebugTypeFromCtx(ctx) != 0,
+		sequence:       1,
+		streamLogCount: 0,
 	}
-	l.ctxInfo = l.getContextInfo(ctx)
-	l.isLegacyLoggerDisabled = utils.GetLegacyLoggerDisabledFromCtx(ctx)
-	l.limitOption = utils.GetLogLimitOption(ctx)
 
 	if !l.isDebug {
 		l.tags = l.getTags(ctx)
@@ -165,6 +145,11 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelInfo, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
 	}
@@ -174,6 +159,11 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelWarn, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
 	}
@@ -183,15 +173,60 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelError, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
 	}
 }
 
-func Send(ctx context.Context, l *Logger) {
-	if l.isLegacyLoggerDisabled {
-		return
+func getFormatDate() string {
+	return time.Now().Format("2006-01-02")
+}
+
+type FormatLog struct {
+	Level      int    `json:"level"`       // 日志级别, 4-error,5-warn,6-info
+	EventID    string `json:"event_id"`    // 事件 ID，可观测需要
+	LogID      string `json:"log_id"`      // 日志 ID，事件编号与日志编号有一一对应关系
+	Timestamp  int64  `json:"timestamp"`   // 时间
+	Message    string `json:"message"`     // 用户的日志内容，SDK 会对超长日志截断
+	TenantID   int64  `json:"tenant_id"`   // 租户 ID
+	TenantType int64  `json:"tenant_type"` // 租户 ID
+	Namespace  string `json:"namespace"`   // 命名空间
+}
+
+func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
+	content := fmt.Sprintf(format, args...)
+	if len(content) > LogLengthLimit {
+		content = content[:LogLengthLimit] + LogLengthLimitTip
 	}
+	if l.streamLogCount == LogCountLimit {
+		content = content + LogCountLimitTip
+	}
+
+	formatLog := FormatLog{
+		Level:      level,
+		EventID:    l.executeID,
+		LogID:      l.RequestID,
+		Timestamp:  time.Now().UnixNano() / 1e3, // 使用微秒
+		Message:    content,
+		TenantID:   l.tenantID,
+		TenantType: l.tenantType,
+		Namespace:  l.namespace,
+	}
+
+	jsonContent, err := json.Marshal(formatLog)
+	if err != nil {
+		utils.GetConsoleLogger(l.RequestID).Errorf("[Logger] getFormatLog failed, err: %v", err)
+	}
+
+	return string(jsonContent)
+}
+
+func Send(ctx context.Context, l *Logger) {
 	if l.isDebug {
 		return
 	}
@@ -223,53 +258,7 @@ func Send(ctx context.Context, l *Logger) {
 	err = http.SendLog(ctx, map[string]string{"compressData": compressLog})
 }
 
-func (l *Logger) fmtStreamNormalLog(content string, level int, index int64) StreamLog {
-	log := StreamLog{
-		RequestID:  l.RequestID,
-		LogID:      l.RequestID,
-		Level:      fmt.Sprintf("%d", level),
-		CreateTime: TimeNowMils(),
-		Content:    content,
-		ServiceID:  l.ctxInfo.ServiceID,
-		EventID:    l.ctxInfo.EventID,
-		Index:      index,
-	}
-	return log
-}
-
-func (l *Logger) sendStreamLog(content string, level int) {
-	if len(content) > int(l.limitOption.MaxLineLength) {
-		content = content[:l.limitOption.MaxLineLength] + LogLengthLimitTip
-	}
-
-	index := atomic.AddInt64(&l.totalLogCount, 1)
-	lastSize := l.totalLogSize
-	curSize := atomic.AddInt64(&l.totalLogSize, int64(len([]byte(content))))
-	maxSize := l.limitOption.MaxSize
-	countLimit := l.limitOption.MaxLine
-	if index == countLimit || (curSize >= int64(maxSize) && lastSize <= int64(maxSize)) {
-		// the last log current function will print
-		content = "[warn] exceed log limit, following logs with be ignored."
-	} else if index > countLimit || curSize > int64(maxSize) {
-		// log will be ignored
-		return
-	}
-
-	log := l.fmtStreamNormalLog(content, level, index)
-	logContent, err := json.Marshal(log)
-	if err != nil {
-		fmt.Println("invalid content")
-	}
-	fmt.Println("\n" + string(logContent))
-}
-
 func (l *Logger) addLog(content string, level int, logType int) {
-	if logType != AggregationLog {
-		l.sendStreamLog(content, level)
-	}
-	if l.isLegacyLoggerDisabled {
-		return
-	}
 	if logType == NormalLog && len(l.logs) >= LogCountLimit {
 		return
 	}
@@ -349,21 +338,6 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 			Value: strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
 		},
 	}
-}
-
-func (l *Logger) getContextInfo(ctx context.Context) logContextInfo {
-	info := logContextInfo{
-		EventID:      utils.GetEventID(ctx),
-		ServiceID:    utils.GetServiceID(),
-		TenantID:     strconv.FormatInt(utils.GetTenantIDFromCtx(ctx), 10),
-		Namespace:    utils.GetNamespaceFromCtx(ctx),
-		SourceID:     getFunctionLoggerExtraToCtx(ctx).SourceID,
-		TriggerType:  utils.GetTriggerTypeFromCtx(ctx),
-		FunctionName: utils.GetFunctionNameFromCtx(ctx),
-		Source:       strconv.Itoa(utils.GetSourceTypeFromCtx(ctx)),
-		InstanceID:   strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
-	}
-	return info
 }
 
 func (l *Logger) getTagsI18(ctx context.Context) []I18nTag {

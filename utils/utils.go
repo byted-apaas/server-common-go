@@ -359,13 +359,3 @@ func IsTrueString(str string) bool {
 func IsExternalFaaS() bool {
 	return GetFaaSPlatform() != "3"
 }
-
-type UseOpenapiKey string
-
-const (
-	useOpenapiEnabled UseOpenapiKey = "useAgwKey"
-)
-
-func SetTmpUseOpenapiToCtx(ctx context.Context) context.Context {
-	return context.WithValue(ctx, useOpenapiEnabled, "1")
-}

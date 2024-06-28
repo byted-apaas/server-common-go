@@ -46,7 +46,6 @@ const (
 
 	HttpHeaderKeyOrgID       = "X-Kunlun-Org-Id"
 	HttpHeaderKeySDKFuncMsg  = "Rpc-Persist-Kunlun-Faassdk"
-	HttpHeaderKeyEventID     = "rpc-persist-apaas-eventtrace-eventid"
 	HttpHeaderKeyEnv         = "x-tt-env"
 	HttpHeaderKeyUsePPE      = "x-use-ppe"
 	HttpHeaderKeyUseBOE      = "x-use-boe"
@@ -61,6 +60,8 @@ const (
 	AuthTypeSystem        = "system"
 	AuthTypeUser          = "user"
 	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
+
+	ExecuteID = "x-serverless-execute-id"
 )
 
 const (
@@ -108,8 +109,7 @@ const (
 	FunctionMetaConfCacheTableKey = "function-meta-conf-cache-table"
 )
 
-type HeaderContextKey string
-
 const (
-	HTTPInvokeOptionsHeader HeaderContextKey = "x-serverless-invoke-options"
+	APaaSLogPrefix = "apaas-log-prefix"
+	APaaSLogSuffix = "apaas-log-suffix"
 )

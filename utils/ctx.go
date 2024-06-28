@@ -38,6 +38,15 @@ func GetTenantIDFromCtx(ctx context.Context) int64 {
 	return tenant.ID
 }
 
+func GetTenantTypeFromCtx(ctx context.Context) int64 {
+	tenant, err := GetTenantFromCtx(ctx)
+	if err != nil {
+		return 0
+	}
+
+	return tenant.Type
+}
+
 func SetFaaSLaneIDCtx(ctx context.Context, laneID string) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyLaneID, laneID)
 }
@@ -144,6 +153,16 @@ func SetLogIDToCtx(ctx context.Context, logID string) context.Context {
 
 func GetLogIDFromCtx(ctx context.Context) string {
 	cast, _ := ctx.Value(constants.CtxKeyLogID).(string)
+
+	return cast
+}
+
+func SetEventIDToCtx(ctx context.Context, eventID string) context.Context {
+	return context.WithValue(ctx, constants.ExecuteID, eventID)
+}
+
+func GetExecuteIDFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.ExecuteID).(string)
 
 	return cast
 }
