@@ -6,7 +6,7 @@ import (
 )
 
 // Version is server-common-go version.
-const Version = "v0.0.29-beta.14"
+const Version = "v0.0.30-beta.0" // v0.0.28 版本号已被使用，本次版本为 v0.0.29
 
 const SDKName = "byted-apaas/server-common-go"
 

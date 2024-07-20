@@ -61,9 +61,6 @@ const (
 	AuthTypeUser          = "user"
 	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
 
-	HTTPHeaderKeyTLBEnv = "X-Tlb-Env"     // TLB 分流标签
-	TLBEnvOAPILGWGray   = "oapi_lgw_gray" // 请求至 openapi 域名后，TLB 分流至 LGW
-
 	ExecuteID = "x-serverless-execute-id"
 )
 
