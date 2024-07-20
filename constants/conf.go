@@ -159,9 +159,9 @@ var (
 			FaaSInfraPSM:    "",
 		},
 		EnvTypeStagingI18n: {
-			OpenAPIDomain:   "https://oapi-kunlun-staging-boe-us.byted.org",
-			InnerAPIDomain:  "https://apaas-innerapi-boe.byteintl.net",
-			FaaSInfraDomain: "https://apaas-faasinfra-staging-boe.byteintl.net",
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
 		},
 		EnvTypeSG: {
 			OpenAPIDomain:   "",
