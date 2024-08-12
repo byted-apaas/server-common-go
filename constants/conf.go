@@ -159,14 +159,14 @@ var (
 			FaaSInfraPSM:    "",
 		},
 		EnvTypeStagingI18n: {
-			OpenAPIDomain:   "https://ae-openapi-us.feishu-boe.cn",
-			InnerAPIDomain:  "https://apaas-faasinfra-staging-boe.byteintl.net",
-			FaaSInfraDomain: "https://apaas-faasinfra-staging-boe.byteintl.net",
-		},
-		EnvTypeSG: {
 			OpenAPIDomain:   "",
 			InnerAPIDomain:  "",
 			FaaSInfraDomain: "",
+		},
+		EnvTypeSG: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
 		},
 	}
 )
