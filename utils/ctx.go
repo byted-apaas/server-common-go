@@ -167,6 +167,12 @@ func GetExecuteIDFromCtx(ctx context.Context) string {
 	return cast
 }
 
+func GetFunctionAPIIDFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.FunctionAPIID).(string)
+
+	return cast
+}
+
 func SetSourceTypeToCtx(ctx context.Context, sourceType int) context.Context {
 	return context.WithValue(ctx, constants.CtxKeySourceType, sourceType)
 }
