@@ -72,6 +72,7 @@ type Log struct {
 type Logger struct {
 	RequestID        string
 	executeID        string
+	functionAPIID    string
 	tenantID         int64
 	namespace        string
 	tenantType       int64
@@ -96,6 +97,7 @@ func NewLogger(ctx context.Context) *Logger {
 		logs:             make([]string, 0),
 		RequestID:        utils.GetLogIDFromCtx(ctx),
 		executeID:        utils.GetExecuteIDFromCtx(ctx),
+		functionAPIID:    utils.GetFunctionAPIIDFromCtx(ctx),
 		tenantID:         utils.GetTenantIDFromCtx(ctx),
 		namespace:        utils.GetNamespaceFromCtx(ctx),
 		tenantType:       utils.GetTenantTypeFromCtx(ctx),
@@ -188,14 +190,15 @@ func getFormatDate() string {
 }
 
 type FormatLog struct {
-	Level      int    `json:"level"`       // 日志级别, 4-error,5-warn,6-info
-	EventID    string `json:"event_id"`    // 事件 ID，可观测需要
-	LogID      string `json:"log_id"`      // 日志 ID，事件编号与日志编号有一一对应关系
-	Timestamp  int64  `json:"timestamp"`   // 时间
-	Message    string `json:"message"`     // 用户的日志内容，SDK 会对超长日志截断
-	TenantID   int64  `json:"tenant_id"`   // 租户 ID
-	TenantType int64  `json:"tenant_type"` // 租户 ID
-	Namespace  string `json:"namespace"`   // 命名空间
+	Level         int    `json:"level"`           // 日志级别, 4-error,5-warn,6-info
+	EventID       string `json:"event_id"`        // 事件 ID，可观测需要
+	FunctionAPIID string `json:"function_api_id"` // 函数 API ID
+	LogID         string `json:"log_id"`          // 日志 ID，事件编号与日志编号有一一对应关系
+	Timestamp     int64  `json:"timestamp"`       // 时间
+	Message       string `json:"message"`         // 用户的日志内容，SDK 会对超长日志截断
+	TenantID      int64  `json:"tenant_id"`       // 租户 ID
+	TenantType    int64  `json:"tenant_type"`     // 租户 ID
+	Namespace     string `json:"namespace"`       // 命名空间
 }
 
 func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
@@ -208,14 +211,15 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 	}
 
 	formatLog := FormatLog{
-		Level:      level,
-		EventID:    l.executeID,
-		LogID:      l.RequestID,
-		Timestamp:  time.Now().UnixNano() / 1e3, // 使用微秒
-		Message:    content,
-		TenantID:   l.tenantID,
-		TenantType: l.tenantType,
-		Namespace:  l.namespace,
+		Level:         level,
+		EventID:       l.executeID,
+		FunctionAPIID: l.functionAPIID,
+		LogID:         l.RequestID,
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		Message:       content,
+		TenantID:      l.tenantID,
+		TenantType:    l.tenantType,
+		Namespace:     l.namespace,
 	}
 
 	jsonContent, err := json.Marshal(formatLog)
