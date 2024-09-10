@@ -33,6 +33,11 @@ func (p *PathReplace) ObjectAPIName(objectAPIName string) *PathReplace {
 	return p
 }
 
+func (p *PathReplace) ObjectAPINameV3(objectAPIName string) *PathReplace {
+	p.path = strings.Replace(p.path, constants.ReplaceObjectAPINameV3, objectAPIName, 1)
+	return p
+}
+
 func (p *PathReplace) FieldAPIName(fieldAPIName string) *PathReplace {
 	p.path = strings.Replace(p.path, constants.ReplaceFieldAPIName, fieldAPIName, 1)
 	return p
