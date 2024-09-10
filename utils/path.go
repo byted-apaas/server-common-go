@@ -48,6 +48,11 @@ func (p *PathReplace) RecordID(recordID int64) *PathReplace {
 	return p
 }
 
+func (p *PathReplace) RecordIDStr(recordID string) *PathReplace {
+	p.path = strings.Replace(p.path, constants.ReplaceRecordID, recordID, 1)
+	return p
+}
+
 func (p *PathReplace) FileID(fileID string) *PathReplace {
 	p.path = strings.Replace(p.path, constants.ReplaceFileID, fileID, 1)
 	return p
