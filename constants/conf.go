@@ -22,29 +22,21 @@ const (
 
 	CreateRecord                 = "openapi_createRecord"
 	CreateRecordV2               = "openapi_createRecordV2"
-	CreateRecordV3               = "openapi_createRecordV3"
 	BatchCreateRecord            = "openapi_batchCreateRecord"
 	BatchCreateRecordV2          = "openapi_batchCreateRecordV2"
-	BatchCreateRecordV3          = "openapi_batchCreateRecordV3"
 	BatchCreateRecordAsync       = "openapi_batchCreateRecordAsync"
 	UpdateRecord                 = "openapi_updateRecord"
 	UpdateRecordV2               = "openapi_updateRecordV2"
-	UpdateRecordV3               = "openapi_updateRecordV3"
 	BatchUpdateRecord            = "openapi_batchUpdateRecord"
 	BatchUpdateRecordV2          = "openapi_batchUpdateRecordV2"
-	BatchUpdateRecordV3          = "openapi_batchUpdateRecordV3"
 	BatchUpdateRecordAsync       = "openapi_batchUpdateRecordAsync"
 	DeleteRecord                 = "openapi_deleteRecord"
 	DeleteRecordV2               = "openapi_deleteRecordV2"
-	DeleteRecordV3               = "openapi_deleteRecordV3"
 	BatchDeleteRecord            = "openapi_batchDeleteRecord"
 	BatchDeleteRecordV2          = "openapi_batchDeleteRecordV2"
-	BatchDeleteRecordV3          = "openapi_batchDeleteRecordV3"
 	BatchDeleteRecordAsync       = "openapi_batchDeleteRecordAsync"
 	GetRecords                   = "openapi_getRecords"
 	GetRecordsV2                 = "openapi_getRecordsV2"
-	GetRecordV3                  = "openapi_getRecordV3"
-	GetRecordsV3                 = "openapi_GetRecordsV3"
 	ModifyRecordsWithTransaction = "openapi_modifyRecordsWithTransaction"
 	Oql                          = "openapi_oql"
 	GetExecutionUserTaskInfo     = "openapi_getExecutionUserTaskInfo"
@@ -129,6 +121,10 @@ const (
 	EnvTypeLr      string = "staging"
 	EnvTypeGray    string = "gray"
 	EnvTypeOnline  string = "online"
+
+	EnvTypeStagingI18n string = "stagingboei18n"
+	EnvTypeSG          string = "online_sg"
+	EnvTypeMY          string = "online_my"
 )
 
 var (
@@ -162,6 +158,21 @@ var (
 			FaaSInfraDomain: "https://apaas-faasinfra.kundou.cn",
 			InnerAPIPSM:     "",
 			FaaSInfraPSM:    "",
+		},
+		EnvTypeStagingI18n: {
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
+		},
+		EnvTypeMY: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
+		},
+		EnvTypeSG: {
+			OpenAPIDomain:   "https://oapi-kunlun-sgapaasbk.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-sgapaasbk.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-sgapaasbk.byteintl.net",
 		},
 	}
 )
