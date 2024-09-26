@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -24,7 +23,7 @@ func GetAppTokenHttp(ctx context.Context, clientID, clientSecret string) (*struc
 	}
 
 	tokenResult := structs.AppTokenResp{}
-	if err = json.Unmarshal(body, &tokenResult); err != nil {
+	if err = utils.JsonUnmarshalBytes(body, &tokenResult); err != nil {
 		return nil, cExceptions.InternalError("[AppCredential] fetchToken Unmarshal TokenResult failed, err: %v", err)
 	}
 

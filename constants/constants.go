@@ -34,6 +34,7 @@ const (
 	ReplaceFileID          = ":fileID"
 	ReplaceExecutionID     = ":executionId"
 	ReplaceAPIName         = ":apiName"
+	ReplaceObjectAPINameV3 = ":object_api_name"
 )
 
 const (

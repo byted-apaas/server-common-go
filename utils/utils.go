@@ -266,7 +266,10 @@ func GetFaaSType(ctx context.Context) string {
 }
 
 func ToString(v interface{}) string {
-	data, _ := json.Marshal(v)
+	data, err := JsonMarshalBytes(v)
+	if err != nil {
+		return ""
+	}
 	return string(data)
 }
 

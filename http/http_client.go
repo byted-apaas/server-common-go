@@ -6,7 +6,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -397,7 +396,10 @@ func GetTimeoutCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 func getSDKFuncMsgValue(ctx context.Context) string {
 	funcMsgMap := map[string]interface{}{}
 	funcMsgMap["funcApiName"] = utils.GetFunctionNameFromCtx(ctx)
-	marshal, _ := json.Marshal(funcMsgMap)
+	marshal, err := utils.JsonMarshalBytes(funcMsgMap)
+	if err != nil {
+		return ""
+	}
 	return string(marshal)
 }
 
