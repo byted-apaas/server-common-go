@@ -20,6 +20,10 @@ func GetEnv() string {
 	return os.Getenv(constants.EnvKEnvironment)
 }
 
+func GetBizIDC() string {
+	return os.Getenv(constants.EnvKBizIDC)
+}
+
 func GetTenantName() string {
 	return os.Getenv(constants.EnvKTenantName)
 }
@@ -203,7 +207,7 @@ func GetInnerAPIPSM(ctx context.Context) string {
 	if psm != "" {
 		return psm
 	}
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
@@ -211,7 +215,7 @@ func GetInnerAPIPSM(ctx context.Context) string {
 }
 
 func GetOpenAPIDomainByConf(ctx context.Context) string {
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
@@ -219,7 +223,7 @@ func GetOpenAPIDomainByConf(ctx context.Context) string {
 }
 
 func GetAGWDomainByConf(ctx context.Context) string {
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
@@ -228,7 +232,7 @@ func GetAGWDomainByConf(ctx context.Context) string {
 
 // Deprecated
 func GetFaaSInfraPSM(ctx context.Context) string {
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
@@ -266,7 +270,10 @@ func GetFaaSType(ctx context.Context) string {
 }
 
 func ToString(v interface{}) string {
-	data, _ := json.Marshal(v)
+	data, err := JsonMarshalBytes(v)
+	if err != nil {
+		return ""
+	}
 	return string(data)
 }
 

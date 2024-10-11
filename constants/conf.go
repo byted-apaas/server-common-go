@@ -129,6 +129,10 @@ const (
 	EnvTypeLr      string = "staging"
 	EnvTypeGray    string = "gray"
 	EnvTypeOnline  string = "online"
+
+	EnvTypeStagingI18n string = "stagingboei18n"
+	EnvTypeSG          string = "onlinesg"
+	EnvTypeMY          string = "onlinemy"
 )
 
 var (
@@ -162,6 +166,21 @@ var (
 			FaaSInfraDomain: "https://apaas-faasinfra.kundou.cn",
 			InnerAPIPSM:     "",
 			FaaSInfraPSM:    "",
+		},
+		EnvTypeStagingI18n: {
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
+		},
+		EnvTypeMY: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
+		},
+		EnvTypeSG: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
 		},
 	}
 )

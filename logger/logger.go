@@ -8,7 +8,6 @@ import (
 	"compress/zlib"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -222,7 +221,7 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 		Namespace:     l.namespace,
 	}
 
-	jsonContent, err := json.Marshal(formatLog)
+	jsonContent, err := utils.JsonMarshalBytes(formatLog)
 	if err != nil {
 		utils.GetConsoleLogger(l.RequestID).Errorf("[Logger] getFormatLog failed, err: %v", err)
 	}

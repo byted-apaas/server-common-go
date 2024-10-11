@@ -370,7 +370,10 @@ func GetAPaaSPersistFaaSValueFromCtx(ctx context.Context, key string) string {
 
 func GetAPaaSPersistFaaSMapStr(ctx context.Context) string {
 	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
-	res, _ := json.Marshal(m)
+	res, err := JsonMarshalBytes(m)
+	if err != nil {
+		return ""
+	}
 	return string(res)
 }
 
@@ -461,7 +464,7 @@ func SetFunctionMetaConfToCtx(ctx context.Context, metaConf map[string]string) c
 	apiNameToMetaConf := map[string]*structs.FunctionMeta{}
 	for apiName, conf := range metaConf {
 		functionMeta := structs.FunctionMeta{}
-		err := json.Unmarshal([]byte(conf), &functionMeta)
+		err := JsonUnmarshalBytes([]byte(conf), &functionMeta)
 		if err != nil {
 			fmt.Printf("SetFunctionMetaConfToCtx failed, err: %+v\n", err)
 			return ctx
