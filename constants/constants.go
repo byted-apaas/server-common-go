@@ -23,6 +23,7 @@ const (
 	EnvKMeshHttp        = "TCE_ENABLE_HTTP_SIDECAR_EGRESS"
 	EnvKMeshUDS         = "WITH_HTTP_MESH_EGRESS_UDS"
 	EnvKSocketAddr      = "SERVICE_MESH_HTTP_EGRESS_ADDR"
+	EnvKBizIDC          = "KBizIDC"
 )
 
 const (
