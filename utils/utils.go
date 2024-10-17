@@ -6,9 +6,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	"github.com/tidwall/gjson"
 	"os"
 	"strings"
+
+	"github.com/tidwall/gjson"
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
@@ -17,6 +18,10 @@ import (
 
 func GetEnv() string {
 	return os.Getenv(constants.EnvKEnvironment)
+}
+
+func GetBizIDC() string {
+	return os.Getenv(constants.EnvKBizIDC)
 }
 
 func GetTenantName() string {
@@ -31,33 +36,49 @@ func GetServiceID() string {
 	return os.Getenv(constants.EnvKSvcID)
 }
 
+func GetOpenAPIPSMAndCluster(ctx context.Context) (psm string, cluster string) {
+	return GetLGWPSMFromEnv(), GetLGWClusterFromEnv()
+}
+
 func GetOpenAPIDomain(ctx context.Context) string {
+	// 取配置优先级：运行时环境变量 > 上下文 > SDK 配置文件
+	openAPIDomain := ""
+	if openAPIDomain = os.Getenv(constants.EnvKOpenApiDomain); openAPIDomain != "" {
+		return openAPIDomain
+	}
+
 	if ctx != nil {
-		if domain, _ := ctx.Value(constants.CtxKeyOpenapiDomain).(string); domain != "" {
-			return domain
+		if openAPIDomain, _ = ctx.Value(constants.CtxKeyOpenapiDomain).(string); openAPIDomain != "" {
+			return openAPIDomain
 		}
 	}
-	return os.Getenv(constants.EnvKOpenApiDomain)
+	return GetOpenAPIDomainByConf(ctx)
 }
 
 func GetFaaSInfraDomain(ctx context.Context) string {
+	domain := os.Getenv(constants.EnvKFaaSInfraDomain)
+	if domain != "" {
+		return domain
+	}
+
 	if ctx != nil {
-		if domain, _ := ctx.Value(constants.CtxKeyFaaSInfraDomain).(string); domain != "" {
+		if domain, _ = ctx.Value(constants.CtxKeyFaaSInfraDomain).(string); domain != "" {
 			return domain
 		}
 	}
-	return os.Getenv(constants.EnvKFaaSInfraDomain)
+	return ""
 }
 
 func GetAGWDomain(ctx context.Context) string {
+	domain := os.Getenv(constants.EnvKInnerAPIDomain)
+	if domain != "" {
+		return domain
+	}
+
 	if ctx != nil {
-		if domain, _ := ctx.Value(constants.CtxKeyAGWDomain).(string); domain != "" {
+		if domain, _ = ctx.Value(constants.CtxKeyAGWDomain).(string); domain != "" {
 			return domain
 		}
-	}
-	domain := os.Getenv(constants.EnvKInnerAPIDomain)
-	if len(domain) > 0 {
-		return domain
 	}
 	return GetAGWDomainByConf(ctx)
 }
@@ -180,24 +201,42 @@ func StringValueOfPtr(p *string, defaultVal string) string {
 // GetInnerAPIPSM
 // open-sdk: from ctx
 // faaS-sdk: from const by env
+// Deprecated
 func GetInnerAPIPSM(ctx context.Context) string {
 	psm := GetInnerAPIPSMFromCtx(ctx)
 	if psm != "" {
 		return psm
 	}
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
 	return conf.InnerAPIPSM
 }
 
+func GetOpenAPIDomainByConf(ctx context.Context) string {
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
+	if !ok {
+		return ""
+	}
+	return conf.OpenAPIDomain
+}
+
 func GetAGWDomainByConf(ctx context.Context) string {
-	conf, ok := constants.EnvConfMap[GetEnv()+GetBoe(ctx)]
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
 	if !ok {
 		return ""
 	}
 	return conf.InnerAPIDomain
+}
+
+// Deprecated
+func GetFaaSInfraPSM(ctx context.Context) string {
+	conf, ok := constants.EnvConfMap[GetEnv()+GetBizIDC()+GetBoe(ctx)]
+	if !ok {
+		return ""
+	}
+	return conf.FaaSInfraPSM
 }
 
 func GetBoe(ctx context.Context) string {
@@ -219,23 +258,6 @@ func SetKEnvToCtxForRPC(ctx context.Context) context.Context {
 	return ctx
 }
 
-func SetUserContextMap(ctx context.Context, userCtxMap map[string]interface{}) context.Context {
-	return context.WithValue(ctx, constants.CtxUserContextMap, userCtxMap)
-}
-
-func GetUserContextMap(ctx context.Context) (res map[string]interface{}) {
-	defer func() {
-		if res == nil {
-			res = make(map[string]interface{})
-		}
-	}()
-	if ctx == nil {
-		return
-	}
-	res, _ = ctx.Value(constants.CtxUserContextMap).(map[string]interface{})
-	return res
-}
-
 func IsMicroservice(ctx context.Context) bool {
 	return os.Getenv(constants.EnvKFaaSScene) == "microservice"
 }
@@ -246,8 +268,12 @@ func GetFaaSType(ctx context.Context) string {
 	}
 	return constants.FaaSTypeFunction
 }
+
 func ToString(v interface{}) string {
-	data, _ := json.Marshal(v)
+	data, err := JsonMarshalBytes(v)
+	if err != nil {
+		return ""
+	}
 	return string(data)
 }
 
@@ -313,4 +339,30 @@ func ErrorWrapper(body []byte, extra map[string]interface{}, err error) ([]byte,
 	default:
 		return nil, exp.NewErrWithCodeV2(code, msg, GetLogIDFromExtra(extra))
 	}
+}
+
+// OpenMesh 是否开启 Mesh，有开关可以关闭 Mesh，有些场景不允许走 Mesh
+func OpenMesh(ctx context.Context) bool {
+	if IsCloseMesh(ctx) || IsDebug(ctx) || IsExternalFaaS() {
+		return false
+	}
+
+	return EnableMesh()
+}
+
+// EnableMesh 是否支持 Mesh，通过 FaaS 的环境变量来判断
+func EnableMesh() bool {
+	return IsTrueString(os.Getenv(constants.EnvKMeshHttp)) && IsTrueString(os.Getenv(constants.EnvKMeshUDS)) && GetSocketAddr() != ""
+}
+
+func GetSocketAddr() string {
+	return strings.TrimSpace(os.Getenv(constants.EnvKSocketAddr))
+}
+
+func IsTrueString(str string) bool {
+	return strings.ToLower(str) == "true"
+}
+
+func IsExternalFaaS() bool {
+	return GetFaaSPlatform() != "3"
 }

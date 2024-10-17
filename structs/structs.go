@@ -7,12 +7,35 @@ import (
 	rawJson "encoding/json"
 	"strconv"
 	"time"
-
-	"github.com/byted-apaas/server-common-go/structs/common/i18n"
-	"github.com/byted-apaas/server-common-go/structs/common/reference"
 )
 
 type I18n []map[string]interface{}
+
+type I18ns = []*struct {
+	LanguageCode int64  `json:"language_code"`
+	Text         string `json:"text"`
+}
+
+type I18nCnUs struct {
+	ZhCn string `json:"zh_CN"`
+	EnUs string `json:"en_US"`
+}
+
+type LookupWithAvatar struct {
+	ID       int64   `json:"id"`
+	Name     *string `json:"name"`
+	Avatar   *Avatar `json:"avatar"`
+	TenantID *int64  `json:"tenant_id"`
+	Email    *string `json:"email"`
+}
+
+type Avatar struct {
+	Source  string            `json:"source"`
+	Image   map[string]string `json:"image"`
+	Color   *string           `json:"color"`
+	Content I18ns             `json:"content"`
+	ColorID *string           `json:"color_id"`
+}
 
 type HttpConfig struct {
 	Domain             string
@@ -38,18 +61,18 @@ type TenantInfo struct {
 }
 
 type AppInfo struct {
-	Namespace   string                      `json:"namespace"`
-	Label       i18n.I18nCnUs               `json:"label"`
-	Description i18n.I18nCnUs               `json:"description"`
-	CreatedAt   int64                       `json:"createdAt"`
-	CreatedBy   *reference.LookupWithAvatar `json:"createdBy"`
+	Namespace   string            `json:"namespace"`
+	Label       I18nCnUs          `json:"label"`
+	Description I18nCnUs          `json:"description"`
+	CreatedAt   int64             `json:"createdAt"`
+	CreatedBy   *LookupWithAvatar `json:"createdBy"`
 }
 
 type EventInfo struct {
-	Type       string        `json:"type"`
-	Name       i18n.I18nCnUs `json:"name"`
-	ApiName    string        `json:"apiName"`
-	InstanceId int64         `json:"instanceId"`
+	Type       string   `json:"type"`
+	Name       I18nCnUs `json:"name"`
+	ApiName    string   `json:"apiName"`
+	InstanceId int64    `json:"instanceId"`
 }
 
 type AppTokenResp struct {
@@ -103,6 +126,7 @@ type WebIDELog struct {
 	Level   string    `json:"level"`
 	Message string    `json:"message"`
 }
+
 type Permission struct {
 	UnauthFields map[string]interface{} `json:"_unauthFields"`
 }
@@ -129,4 +153,13 @@ type ParamUnauthField struct {
 	Type             string     `json:"type"`
 	UnauthFields     []string   `json:"unauthFields"`
 	UnauthFieldsList [][]string `json:"unauthFieldsList"`
+}
+
+type SDKConf struct {
+	TransientConf *SDKTransientConf `json:"transientConf"`
+}
+
+type SDKTransientConf struct {
+	IsCloseMesh        bool  `json:"isCloseMesh"`
+	MeshDestReqTimeout int64 `json:"meshDestReqTimeout"`
 }
