@@ -6,6 +6,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -19,25 +20,43 @@ func SetTenantToCtx(ctx context.Context, tenant *structs.Tenant) context.Context
 }
 
 func GetTenantFromCtx(ctx context.Context) (*structs.Tenant, error) {
-	cast, ok := ctx.Value(constants.CtxKeyTenant).(*structs.Tenant)
-	if !ok {
-		return nil, exp.InternalError("Can not find tenant from ctx.")
+	tenant := structs.Tenant{}
+	err := Decode(ctx.Value(constants.CtxKeyTenant), &tenant)
+	if err != nil {
+		return nil, exp.InternalError("decode tenant failed, err: %+v", err)
 	}
 
-	return cast, nil
+	return &tenant, nil
 }
 
 func GetTenantIDFromCtx(ctx context.Context) int64 {
-	cast, ok := ctx.Value(constants.CtxKeyTenant).(*structs.Tenant)
-	if !ok {
+	tenant, err := GetTenantFromCtx(ctx)
+	if err != nil {
 		return 0
 	}
 
-	return cast.ID
+	return tenant.ID
+}
+
+func GetTenantTypeFromCtx(ctx context.Context) int64 {
+	tenant, err := GetTenantFromCtx(ctx)
+	if err != nil {
+		return 0
+	}
+
+	return tenant.Type
 }
 
 func SetFaaSLaneIDCtx(ctx context.Context, laneID string) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyLaneID, laneID)
+}
+
+func SetFaaSEnvIDCtx(ctx context.Context, envID string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyEnvID, envID)
+}
+
+func SetFaaSEnvTypeCtx(ctx context.Context, envType int64) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyEnvType, envType)
 }
 
 func GetFaaSLaneIDFromCtx(ctx context.Context) string {
@@ -48,17 +67,35 @@ func GetFaaSLaneIDFromCtx(ctx context.Context) string {
 	return ""
 }
 
+func GetFaaSEnvIDFromCtx(ctx context.Context) string {
+	cast, ok := ctx.Value(constants.CtxKeyEnvID).(string)
+	if ok {
+		return cast
+	}
+	return ""
+}
+
+// GetEnvTypeFromCtx
+func GetFaaSEnvTypeFromCtx(ctx context.Context) int64 {
+	cast, ok := ctx.Value(constants.CtxKeyEnvType).(int64)
+	if ok {
+		return cast
+	}
+	return int64(0)
+}
+
 func SetAppInfoToCtx(ctx context.Context, appInfo *structs.AppInfo) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyApp, appInfo)
 }
 
 func GetAppInfoFromCtx(ctx context.Context) (*structs.AppInfo, error) {
-	cast, ok := ctx.Value(constants.CtxKeyApp).(*structs.AppInfo)
-	if !ok {
-		return nil, exp.InternalError("Can not find appInfo from ctx.")
+	appInfo := structs.AppInfo{}
+	err := Decode(ctx.Value(constants.CtxKeyApp), &appInfo)
+	if err != nil {
+		return nil, exp.InternalError("Decode appInfo failed, err: %+v", err)
 	}
 
-	return cast, nil
+	return &appInfo, nil
 }
 
 func SetEventInfoToCtx(ctx context.Context, appInfo *structs.EventInfo) context.Context {
@@ -66,21 +103,22 @@ func SetEventInfoToCtx(ctx context.Context, appInfo *structs.EventInfo) context.
 }
 
 func GetEventInfoFromCtx(ctx context.Context) (*structs.EventInfo, error) {
-	cast, ok := ctx.Value(constants.CtxKeyEvent).(*structs.EventInfo)
-	if !ok {
-		return nil, exp.InternalError("Can not find eventInfo from ctx.")
+	eventInfo := structs.EventInfo{}
+	err := Decode(ctx.Value(constants.CtxKeyEvent), &eventInfo)
+	if err != nil {
+		return nil, exp.InternalError("Decode eventInfo failed, err: %+v", err)
 	}
 
-	return cast, nil
+	return &eventInfo, nil
 }
 
 func GetNamespaceFromCtx(ctx context.Context) string {
-	cast, ok := ctx.Value(constants.CtxKeyTenant).(*structs.Tenant)
-	if !ok {
+	tenant, err := GetTenantFromCtx(ctx)
+	if err != nil {
 		return ""
 	}
 
-	return cast.Namespace
+	return tenant.Namespace
 }
 
 func SetUserIDToCtx(ctx context.Context, userID int64) context.Context {
@@ -119,6 +157,22 @@ func GetLogIDFromCtx(ctx context.Context) string {
 	return cast
 }
 
+func SetEventIDToCtx(ctx context.Context, eventID string) context.Context {
+	return context.WithValue(ctx, constants.ExecuteID, eventID)
+}
+
+func GetExecuteIDFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.ExecuteID).(string)
+
+	return cast
+}
+
+func GetFunctionAPIIDFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.FunctionAPIID).(string)
+
+	return cast
+}
+
 func SetSourceTypeToCtx(ctx context.Context, sourceType int) context.Context {
 	return context.WithValue(ctx, constants.CtxKeySourceType, sourceType)
 }
@@ -146,6 +200,15 @@ func SetDebugTypeToCtx(ctx context.Context, debugType int) context.Context {
 func GetDebugTypeFromCtx(ctx context.Context) int {
 	cast, _ := ctx.Value(constants.CtxKeyDebugType).(int)
 
+	return cast
+}
+
+func SetFuncAPINameToCtx(ctx context.Context, funcAPIName string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyFunctionAPIName, funcAPIName)
+}
+
+func GetFuncAPINameFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.CtxKeyFunctionAPIName).(string)
 	return cast
 }
 
@@ -228,8 +291,39 @@ func GetUserContext(ctx context.Context) (res structs.UserContext) {
 	if ctx == nil {
 		return
 	}
-	res, _ = ctx.Value(constants.CtxUserContext).(structs.UserContext)
+
+	userCtx := structs.UserContext{}
+	err := Decode(ctx.Value(constants.CtxUserContext), &userCtx)
+	if err != nil {
+		fmt.Printf("Decode userCtx failed, err: %+v", err)
+	}
+	return userCtx
+}
+
+func SetUserContextMap(ctx context.Context, userCtxMap map[string]interface{}) context.Context {
+	return context.WithValue(ctx, constants.CtxUserContextMap, userCtxMap)
+}
+
+func GetUserContextMap(ctx context.Context) (res map[string]interface{}) {
+	defer func() {
+		if res == nil {
+			res = make(map[string]interface{})
+		}
+	}()
+	if ctx == nil {
+		return
+	}
+	res, _ = ctx.Value(constants.CtxUserContextMap).(map[string]interface{})
 	return res
+}
+
+func SetAPaaSLaneToCtx(ctx context.Context, lane string) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyAPaaSLane, lane)
+}
+
+func GetAPaaSLaneFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.CtxKeyAPaaSLane).(string)
+	return cast
 }
 
 func SetAPaaSPersistFaaSMapToCtx(ctx context.Context, aPaaSPersistFaaSMap map[string]string) context.Context {
@@ -276,17 +370,22 @@ func GetAPaaSPersistFaaSValueFromCtx(ctx context.Context, key string) string {
 
 func GetAPaaSPersistFaaSMapStr(ctx context.Context) string {
 	m := GetAPaaSPersistFaaSMapFromCtx(ctx)
-	res, _ := json.Marshal(m)
+	res, err := JsonMarshalBytes(m)
+	if err != nil {
+		return ""
+	}
 	return string(res)
 }
 
-func SetAPaaSLaneToCtx(ctx context.Context, lane string) context.Context {
-	return context.WithValue(ctx, constants.CtxKeyAPaaSLane, lane)
-}
-
-func GetAPaaSLaneFromCtx(ctx context.Context) string {
-	cast, _ := ctx.Value(constants.CtxKeyAPaaSLane).(string)
-	return cast
+func SetAPaaSPersistHeader(ctx context.Context, header http.Header) {
+	if ctx == nil {
+		return
+	}
+	if persistHeader, ok := ctx.Value(constants.PersistAPaaSKeySummarized).(map[string]string); ok {
+		for key, value := range persistHeader {
+			header.Add(key, value)
+		}
+	}
 }
 
 func SetUserAndAuthTypeToCtx(ctx context.Context, authType *string) context.Context {
@@ -352,18 +451,11 @@ func SetUserAndMixAuthTypeToHeaders(ctx context.Context, headers map[string][]st
 	return headers
 }
 
-func SetFuncAPINameToCtx(ctx context.Context, funcAPIName string) context.Context {
-	return context.WithValue(ctx, constants.CtxKeyFunctionAPIName, funcAPIName)
-}
-
-func GetFuncAPINameFromCtx(ctx context.Context) string {
-	cast, _ := ctx.Value(constants.CtxKeyFunctionAPIName).(string)
-	return cast
-}
 func SetUserAndAuthTypeToHeaders(ctx context.Context, headers map[string][]string) map[string][]string {
 	return SetUserAndMixAuthTypeToHeaders(ctx, headers, false)
 }
 
+// SetFunctionMetaConfToCtx 提供给框架层使用
 func SetFunctionMetaConfToCtx(ctx context.Context, metaConf map[string]string) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
@@ -372,7 +464,7 @@ func SetFunctionMetaConfToCtx(ctx context.Context, metaConf map[string]string) c
 	apiNameToMetaConf := map[string]*structs.FunctionMeta{}
 	for apiName, conf := range metaConf {
 		functionMeta := structs.FunctionMeta{}
-		err := json.Unmarshal([]byte(conf), &functionMeta)
+		err := JsonUnmarshalBytes([]byte(conf), &functionMeta)
 		if err != nil {
 			fmt.Printf("SetFunctionMetaConfToCtx failed, err: %+v\n", err)
 			return ctx
@@ -388,8 +480,14 @@ func GetFunctionMetaConfFromCtx(ctx context.Context, apiName string) *structs.Fu
 		return nil
 	}
 
-	metaConfMap, _ := ctx.Value(constants.CtxKeyFunctionMetaConf).(map[string]*structs.FunctionMeta)
-	conf, _ := metaConfMap[strings.ToLower(apiName)]
+	apiNameToFuncMeta := map[string]*structs.FunctionMeta{}
+	err := Decode(ctx.Value(constants.CtxKeyFunctionMetaConf), &apiNameToFuncMeta)
+	if err != nil {
+		fmt.Printf("Decode metaConf failed, err: %+v", err)
+		return nil
+	}
+
+	conf, _ := apiNameToFuncMeta[strings.ToLower(apiName)]
 	return conf
 }
 
@@ -435,11 +533,15 @@ func GetRecordUnauthField(ctx context.Context) (objToRecordIDToUnauthFields Reco
 		return nil
 	}
 
-	objToRecordIDToUnauthFields, _ = ctx.Value(constants.CtxKeyUnauthFieldMap).(RecordUnauthField)
-	return objToRecordIDToUnauthFields
-}
+	unauthField := RecordUnauthField{}
+	err := Decode(ctx.Value(constants.CtxKeyUnauthFieldMap), &unauthField)
+	if err != nil {
+		fmt.Printf("Decode unauthField failed, err: %+v", err)
+		return unauthField
+	}
 
-var unauthFieldMapMutex sync.Mutex
+	return unauthField
+}
 
 func GetRecordUnauthFieldByObject(ctx context.Context, objectAPIName string) (recordIDToUnauthFields map[int64][]string) {
 	if ctx == nil {
@@ -470,6 +572,8 @@ func GetRecordUnauthFieldByObjectAndRecordID(ctx context.Context, objectAPIName 
 	return unauthFields
 }
 
+var unauthFieldMapMutex sync.Mutex
+
 func WriteUnauthFieldMapWithLock(ctx context.Context, objectAPIName string, recordID int64, unauthFields []string) {
 	unauthFieldMapMutex.Lock()
 	defer unauthFieldMapMutex.Unlock()
@@ -484,4 +588,98 @@ func WriteUnauthFieldMapWithLock(ctx context.Context, objectAPIName string, reco
 	}
 
 	unauthFieldMap[objectAPIName][recordID] = unauthFields
+}
+
+func GetSDKConf(ctx context.Context) *structs.SDKConf {
+	if ctx == nil {
+		return nil
+	}
+
+	sdkConfStr, ok := ctx.Value(constants.CtxKeySDKConf).(string)
+	if !ok || sdkConfStr == "" {
+		return nil
+	}
+
+	sdkConf := structs.SDKConf{}
+	err := JsonUnmarshalBytes([]byte(sdkConfStr), &sdkConf)
+	if err != nil {
+		return nil
+	}
+	return &sdkConf
+}
+
+func GetSDKTransientConf(ctx context.Context) *structs.SDKTransientConf {
+	sdkConf := GetSDKConf(ctx)
+	if sdkConf == nil {
+		return nil
+	}
+	return sdkConf.TransientConf
+}
+
+func GetMeshDestReqTimeout(ctx context.Context) int64 {
+	conf := GetSDKTransientConf(ctx)
+	if conf != nil && conf.MeshDestReqTimeout > 0 {
+		return conf.MeshDestReqTimeout
+	}
+	return constants.DefaultMeshDestReqTimeout
+}
+
+func IsCloseMesh(ctx context.Context) bool {
+	transientConf := GetSDKTransientConf(ctx)
+	if transientConf == nil {
+		return false
+	}
+
+	return transientConf.IsCloseMesh
+}
+
+func GetTraceHeader(ctx context.Context) map[string]string {
+	traceHeader := map[string]string{}
+	if ctx == nil {
+		return traceHeader
+	}
+
+	if traceParent, ok := ctx.Value("traceparent").(string); ok && traceParent != "" {
+		traceHeader["traceparent"] = traceParent
+	}
+
+	if traceState, ok := ctx.Value("tracestate").(string); ok && traceState != "" {
+		traceHeader["tracestate"] = traceState
+	}
+
+	return traceHeader
+}
+
+type RuntimeType string
+
+const (
+	RuntimeTypeRuntime    RuntimeType = "0" // 运行态
+	RuntimeTypeCloudDebug RuntimeType = "1" // 云端调试
+	RuntimeTypeLocalDebug RuntimeType = "2" // 本地调试
+)
+
+func SetRuntimeType(ctx context.Context, runtimeType string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, constants.CtxKeyRuntimeType, runtimeType)
+}
+
+func GetRuntimeType(ctx context.Context) RuntimeType {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if runtimeType, ok := ctx.Value(constants.CtxKeyRuntimeType).(string); ok {
+		return RuntimeType(runtimeType)
+	}
+	return RuntimeTypeRuntime
+}
+
+func IsRuntime(ctx context.Context) bool {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	return GetRuntimeType(ctx) == RuntimeTypeRuntime
 }

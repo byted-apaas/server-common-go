@@ -38,6 +38,10 @@ func NewAppCredential(id, secret string) *AppCredential {
 	}
 }
 
+func (c *AppCredential) getID() string {
+	return c.id
+}
+
 func (c *AppCredential) getToken(ctx context.Context) (string, error) {
 	expireTime, ok := c.expireTime.Load().(int64)
 	if ok && expireTime-utils.NowMils() > constants.AppTokenRefreshRemainTime {

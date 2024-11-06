@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/byted-apaas/server-common-go/structs"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/byted-apaas/server-common-go/structs"
 )
 
 const (

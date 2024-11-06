@@ -137,7 +137,7 @@ func PrintLog(contents ...interface{}) {
 			fmt.Println(content)
 			isPrint = true
 		default:
-			content, err := json.Marshal(content)
+			content, err := JsonMarshalBytes(content)
 			if err != nil {
 				panic(err)
 			}

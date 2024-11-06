@@ -33,6 +33,11 @@ func (p *PathReplace) ObjectAPIName(objectAPIName string) *PathReplace {
 	return p
 }
 
+func (p *PathReplace) ObjectAPINameV3(objectAPIName string) *PathReplace {
+	p.path = strings.Replace(p.path, constants.ReplaceObjectAPINameV3, objectAPIName, 1)
+	return p
+}
+
 func (p *PathReplace) FieldAPIName(fieldAPIName string) *PathReplace {
 	p.path = strings.Replace(p.path, constants.ReplaceFieldAPIName, fieldAPIName, 1)
 	return p
@@ -40,6 +45,11 @@ func (p *PathReplace) FieldAPIName(fieldAPIName string) *PathReplace {
 
 func (p *PathReplace) RecordID(recordID int64) *PathReplace {
 	p.path = strings.Replace(p.path, constants.ReplaceRecordID, strconv.FormatInt(recordID, 10), 1)
+	return p
+}
+
+func (p *PathReplace) RecordIDStr(recordID string) *PathReplace {
+	p.path = strings.Replace(p.path, constants.ReplaceRecordID, recordID, 1)
 	return p
 }
 
