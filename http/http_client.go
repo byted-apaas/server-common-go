@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/sync/semaphore"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -36,7 +37,6 @@ type HttpClient struct {
 	http.Client
 	MeshClient *http.Client
 	FromSDK    version.ISDKInfo
-	mu         sync.Mutex // 添加互斥锁用于并发控制
 }
 
 var (
@@ -48,6 +48,8 @@ var (
 )
 
 func GetOpenapiClient() *HttpClient {
+	var maxConcurrent int = 10 // 设置最大并发数为10
+	s := semaphore.NewWeighted(int64(maxConcurrent))
 	openapiClientOnce.Do(func() {
 		openapiClient = &HttpClient{
 			Type: OpenAPIClient,
@@ -67,6 +69,11 @@ func GetOpenapiClient() *HttpClient {
 			openapiClient.MeshClient = &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						err := s.Acquire(ctx, 1)
+						if err != nil {
+							return nil, err
+						}
+						defer s.Release(1)
 						unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
 						if err != nil {
 							return nil, err
@@ -206,14 +213,9 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			newReq.Header.Set("destination-cluster", cluster)
 			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
 
-			// 使用互斥锁保护对MeshClient的访问
-			c.mu.Lock()
-			defer c.mu.Unlock()
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
-			c.mu.Lock()
-			defer c.mu.Unlock()
 			resp, err = c.Do(req.WithContext(ctx))
 		}
 		var opErr *net.OpError
