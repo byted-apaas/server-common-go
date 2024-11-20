@@ -70,6 +70,11 @@ type Log struct {
 
 type Logger struct {
 	RequestID        string
+	executeID        string
+	functionAPIID    string
+	tenantID         int64
+	namespace        string
+	tenantType       int64
 	lock             sync.Mutex
 	logs             []string
 	tags             []Tag
@@ -82,6 +87,7 @@ type Logger struct {
 	warnNum          int64
 	sequence         int64
 	isDebug          bool
+	streamLogCount   int64
 }
 
 func NewLogger(ctx context.Context) *Logger {
@@ -89,14 +95,20 @@ func NewLogger(ctx context.Context) *Logger {
 		lock:             sync.Mutex{},
 		logs:             make([]string, 0),
 		RequestID:        utils.GetLogIDFromCtx(ctx),
+		executeID:        utils.GetExecuteIDFromCtx(ctx),
+		functionAPIID:    utils.GetFunctionAPIIDFromCtx(ctx),
+		tenantID:         utils.GetTenantIDFromCtx(ctx),
+		namespace:        utils.GetNamespaceFromCtx(ctx),
+		tenantType:       utils.GetTenantTypeFromCtx(ctx),
 		startTriggerTime: getFunctionLoggerExtraToCtx(ctx).StartTriggerTime,
 
-		startRuntime: time.Now().UnixNano() / int64(time.Millisecond),
-		errorNum:     0,
-		infoNum:      0,
-		warnNum:      0,
-		isDebug:      utils.GetDebugTypeFromCtx(ctx) != 0,
-		sequence:     1,
+		startRuntime:   time.Now().UnixNano() / int64(time.Millisecond),
+		errorNum:       0,
+		infoNum:        0,
+		warnNum:        0,
+		isDebug:        utils.GetDebugTypeFromCtx(ctx) != 0,
+		sequence:       1,
+		streamLogCount: 0,
 	}
 
 	if !l.isDebug {
@@ -108,6 +120,13 @@ func NewLogger(ctx context.Context) *Logger {
 	return l
 }
 
+func NewConsoleLogger(ctx context.Context) *Logger {
+	return &Logger{
+		RequestID: utils.GetLogIDFromCtx(ctx),
+		isDebug:   true,
+	}
+}
+
 func SetLogger(ctx context.Context, l *Logger) context.Context {
 	return context.WithValue(ctx, constants.CtxKeyLogger, l)
 }
@@ -115,8 +134,9 @@ func SetLogger(ctx context.Context, l *Logger) context.Context {
 func GetLogger(ctx context.Context) *Logger {
 	l, ok := ctx.Value(constants.CtxKeyLogger).(*Logger)
 	if !ok || l == nil {
-		utils.GetConsoleLogger().Errorf("GetLogger failed !")
-		panic("[Logger Usage Error] please make sure that your context parameter in GetLogger() method inherits from the functions Handler, rather than self-built context or an empty context.")
+		return NewConsoleLogger(ctx)
+		// utils.GetConsoleLogger().Errorf("GetLogger failed !")
+		// panic("[Logger Usage Error] please make sure that your context parameter in GetLogger() method inherits from the functions Handler, rather than self-built context or an empty context.")
 	}
 
 	return l
@@ -126,7 +146,11 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
-		fmt.Printf(format, args...)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelInfo, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
 	}
@@ -136,7 +160,11 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
-		fmt.Printf(format, args...)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelWarn, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
 	}
@@ -146,10 +174,59 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
-		fmt.Printf(format, args...)
+		if l.streamLogCount < LogCountLimit {
+			l.streamLogCount++
+			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelError, format, args...), constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
 	}
+}
+
+func getFormatDate() string {
+	return time.Now().Format("2006-01-02")
+}
+
+type FormatLog struct {
+	Level         int    `json:"level"`           // 日志级别, 4-error,5-warn,6-info
+	EventID       string `json:"event_id"`        // 事件 ID，可观测需要
+	FunctionAPIID string `json:"function_api_id"` // 函数 API ID
+	LogID         string `json:"log_id"`          // 日志 ID，事件编号与日志编号有一一对应关系
+	Timestamp     int64  `json:"timestamp"`       // 时间
+	Message       string `json:"message"`         // 用户的日志内容，SDK 会对超长日志截断
+	TenantID      int64  `json:"tenant_id"`       // 租户 ID
+	TenantType    int64  `json:"tenant_type"`     // 租户 ID
+	Namespace     string `json:"namespace"`       // 命名空间
+}
+
+func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
+	content := fmt.Sprintf(format, args...)
+	if len(content) > LogLengthLimit {
+		content = content[:LogLengthLimit] + LogLengthLimitTip
+	}
+	if l.streamLogCount == LogCountLimit {
+		content = content + LogCountLimitTip
+	}
+
+	formatLog := FormatLog{
+		Level:         level,
+		EventID:       l.executeID,
+		FunctionAPIID: l.functionAPIID,
+		LogID:         l.RequestID,
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		Message:       content,
+		TenantID:      l.tenantID,
+		TenantType:    l.tenantType,
+		Namespace:     l.namespace,
+	}
+
+	jsonContent, err := utils.JsonMarshalBytes(formatLog)
+	if err != nil {
+		utils.GetConsoleLogger(l.RequestID).Errorf("[Logger] getFormatLog failed, err: %v", err)
+	}
+
+	return string(jsonContent)
 }
 
 func Send(ctx context.Context, l *Logger) {
@@ -338,7 +415,8 @@ func SetFunctionLoggerExtraToCtx(ctx context.Context, extra FunctionLoggerExtra)
 }
 
 func getFunctionLoggerExtraToCtx(ctx context.Context) FunctionLoggerExtra {
-	cast, _ := ctx.Value(constants.CtxKeyFLoggerExtra).(FunctionLoggerExtra)
-
-	return cast
+	extra := FunctionLoggerExtra{}
+	v := ctx.Value(constants.CtxKeyFLoggerExtra)
+	_ = utils.Decode(v, &extra)
+	return extra
 }

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/muesli/cache2go"
+
 	"github.com/byted-apaas/server-common-go/constants"
 	"github.com/byted-apaas/server-common-go/structs"
 	"github.com/byted-apaas/server-common-go/utils"
-	"github.com/muesli/cache2go"
 )
 
 func GetFunctionMetaConfWithCache(ctx context.Context, apiName string) *structs.FunctionMeta {

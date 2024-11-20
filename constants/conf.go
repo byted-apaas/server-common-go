@@ -9,7 +9,7 @@ const (
 	HttpClientDialTimeoutDefault = 2 * time.Second
 	HttpClientTLSTimeoutDefault  = 1 * time.Second
 
-	RpcClientConnectTimeoutDefault = 1 * time.Second
+	RpcClientConnectTimeoutDefault = 3 * time.Second
 	RpcClientRWTimeoutDefault      = 20 * time.Minute
 	APITimeoutDefault              = 12 * time.Second
 
@@ -22,21 +22,29 @@ const (
 
 	CreateRecord                 = "openapi_createRecord"
 	CreateRecordV2               = "openapi_createRecordV2"
+	CreateRecordV3               = "openapi_createRecordV3"
 	BatchCreateRecord            = "openapi_batchCreateRecord"
 	BatchCreateRecordV2          = "openapi_batchCreateRecordV2"
+	BatchCreateRecordV3          = "openapi_batchCreateRecordV3"
 	BatchCreateRecordAsync       = "openapi_batchCreateRecordAsync"
 	UpdateRecord                 = "openapi_updateRecord"
 	UpdateRecordV2               = "openapi_updateRecordV2"
+	UpdateRecordV3               = "openapi_updateRecordV3"
 	BatchUpdateRecord            = "openapi_batchUpdateRecord"
 	BatchUpdateRecordV2          = "openapi_batchUpdateRecordV2"
+	BatchUpdateRecordV3          = "openapi_batchUpdateRecordV3"
 	BatchUpdateRecordAsync       = "openapi_batchUpdateRecordAsync"
 	DeleteRecord                 = "openapi_deleteRecord"
 	DeleteRecordV2               = "openapi_deleteRecordV2"
+	DeleteRecordV3               = "openapi_deleteRecordV3"
 	BatchDeleteRecord            = "openapi_batchDeleteRecord"
 	BatchDeleteRecordV2          = "openapi_batchDeleteRecordV2"
+	BatchDeleteRecordV3          = "openapi_batchDeleteRecordV3"
 	BatchDeleteRecordAsync       = "openapi_batchDeleteRecordAsync"
 	GetRecords                   = "openapi_getRecords"
 	GetRecordsV2                 = "openapi_getRecordsV2"
+	GetRecordV3                  = "openapi_getRecordV3"
+	GetRecordsV3                 = "openapi_GetRecordsV3"
 	ModifyRecordsWithTransaction = "openapi_modifyRecordsWithTransaction"
 	Oql                          = "openapi_oql"
 	GetExecutionUserTaskInfo     = "openapi_getExecutionUserTaskInfo"
@@ -71,6 +79,8 @@ const (
 	GetIntegrationAppAccessToken           = "openapi_getIntegrationAppAccessToken"
 	GetDefaultIntegrationTenantAccessToken = "openapi_getDefaultIntegrationTenantAccessToken"
 	GetIntegrationTenantAccessToken        = "openapi_getIntegrationTenantAccessToken"
+	GetApprovalInstanceList                = "openapi_getApprovalInstanceList"
+	GetApprovalInstance                    = "openapi_getApprovalInstance"
 
 	GetServiceToken         = "faasinfra_getServiceToken"
 	SendLog                 = "faasinfra_sendLog"
@@ -108,20 +118,73 @@ type PlatformConf struct {
 	OpenAPIDomain   string
 	InnerAPIDomain  string
 	FaaSInfraDomain string
-	InnerAPIPSM     string
-	BOE             string
+	FaaSInfraPSM    string // Deprecated
+	InnerAPIPSM     string // Deprecated
+	BOE             string // Deprecated
 }
 
 const (
-	EnvTypeLr     string = "staging"
-	EnvTypeGray   string = "gray"
-	EnvTypeOnline string = "online"
+	EnvTypeDev     string = "developmentboe" // Deprecated
+	EnvTypeStaging string = "stagingboe"
+	EnvTypeLr      string = "staging"
+	EnvTypeGray    string = "gray"
+	EnvTypeOnline  string = "online"
+
+	EnvTypeStagingI18n string = "stagingboei18n"
+	EnvTypeSG          string = "onlinesg"
+	EnvTypeMY          string = "onlinemy"
 )
 
 var (
+	// EnvConfMap 配置全是外网域名，实际消费不到，优先从 env 中消费
 	EnvConfMap = map[string]PlatformConf{
-		EnvTypeLr:     {"", "https://apaas-innerapi-lr.feishu-pre.cn", "https://apaas-faasinfra-staging.bytedance.com", "", ""},
-		EnvTypeGray:   {"", "https://apaas-innerapi.feishu-pre.cn", "https://apaas-faasinfra-gray.kundou.cn", "", ""},
-		EnvTypeOnline: {"", "https://apaas-innerapi.feishu.cn", "https://apaas-faasinfra.kundou.cn", "", ""},
+		EnvTypeStaging: {
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+			BOE:             "boe",
+		},
+		EnvTypeLr: {
+			OpenAPIDomain:   "https://oapi-kunlun-staging.bytedance.com",
+			InnerAPIDomain:  "https://apaas-innerapi-lr.feishu-pre.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra-staging.bytedance.com",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
+		EnvTypeGray: {
+			OpenAPIDomain:   "https://oapi-kunlun-gray.kundou.cn",
+			InnerAPIDomain:  "https://apaas-innerapi.feishu-pre.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra-gray.kundou.cn",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
+		EnvTypeOnline: {
+			OpenAPIDomain:   "https://oapi-kunlun.kundou.cn",
+			InnerAPIDomain:  "https://apaas-innerapi.feishu.cn",
+			FaaSInfraDomain: "https://apaas-faasinfra.kundou.cn",
+			InnerAPIPSM:     "",
+			FaaSInfraPSM:    "",
+		},
+		EnvTypeStagingI18n: {
+			OpenAPIDomain:   "",
+			InnerAPIDomain:  "",
+			FaaSInfraDomain: "",
+		},
+		EnvTypeMY: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
+		},
+		EnvTypeSG: {
+			OpenAPIDomain:   "https://oapi-kunlun-my.byteintl.net",
+			InnerAPIDomain:  "https://apaas-innerapi-my.byteintl.net",
+			FaaSInfraDomain: "https://apaas-faasinfra-my.byteintl.net",
+		},
 	}
+)
+
+const (
+	DefaultMeshDestReqTimeout = 60000
 )

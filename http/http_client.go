@@ -6,11 +6,12 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
 	"github.com/byted-apaas/server-common-go/utils"
+	"github.com/byted-apaas/server-common-go/version"
 )
 
 type ClientType int
@@ -32,6 +34,8 @@ const (
 type HttpClient struct {
 	Type ClientType
 	http.Client
+	MeshClient *http.Client
+	FromSDK    version.ISDKInfo
 }
 
 var (
@@ -55,12 +59,31 @@ func GetOpenapiClient() *HttpClient {
 					IdleConnTimeout:     60 * time.Second,
 				},
 			},
+			FromSDK: version.GetCommonSDKInfo(),
+		}
+
+		if utils.EnableMesh() {
+			openapiClient.MeshClient = &http.Client{
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
+						if err != nil {
+							return nil, err
+						}
+						return net.DialUnix("unix", nil, unixAddr)
+					},
+					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
+					MaxIdleConns:        1000,
+					MaxIdleConnsPerHost: 10,
+					IdleConnTimeout:     60 * time.Second,
+				},
+			}
 		}
 	})
 	return openapiClient
 }
 
-func GetFaaSInfraClient() *HttpClient {
+func GetFaaSInfraClient(ctx context.Context) *HttpClient {
 	fsInfraClientOnce.Do(func() {
 		fsInfraClient = &HttpClient{
 			Type: FaaSInfraClient,
@@ -75,13 +98,31 @@ func GetFaaSInfraClient() *HttpClient {
 			},
 		}
 	})
+
+	if utils.EnableMesh() {
+		fsInfraClient.MeshClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
+					if err != nil {
+						return nil, err
+					}
+					return net.DialUnix("unix", nil, unixAddr)
+				},
+				TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
+				MaxIdleConns:        1000,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     60 * time.Second,
+			},
+		}
+	}
 	return fsInfraClient
 }
 
 func (c *HttpClient) getActualDomain(ctx context.Context) string {
 	switch c.Type {
 	case OpenAPIClient:
-		return utils.GetAGWDomain(ctx)
+		return utils.GetOpenAPIDomain(ctx)
 	case FaaSInfraClient:
 		return utils.GetFaaSInfraDomain(ctx)
 	default:
@@ -114,7 +155,11 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	// 添加Apaas的LaneID
 	req.Header.Add(constants.HTTPHeaderKeyFaaSLaneID, utils.GetFaaSLaneIDFromCtx(ctx))
 
-	c.requestCommonInfo(ctx, req)
+	// 添加ApaaS的环境标识
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvID, utils.GetFaaSEnvIDFromCtx(ctx))
+	req.Header.Add(constants.HTTPHeaderKeyFaaSEnvType, fmt.Sprintf("%d", utils.GetFaaSEnvTypeFromCtx(ctx)))
+
+	ctx = c.requestCommonInfo(ctx, req)
 
 	// Timeout
 	var cancel context.CancelFunc
@@ -124,9 +169,41 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	var resp *http.Response
 	var err error
 
+	// OpenAPIClient
+	psm, cluster := utils.GetOpenAPIPSMAndCluster(ctx)
+	switch c.Type {
+	case FaaSInfraClient:
+		psm, cluster = utils.GetFaaSInfraPSMFromEnv()
+	}
+
 	// 连接层超时
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
-		resp, err = c.Do(req.WithContext(ctx))
+		if utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil {
+			var newReq *http.Request
+			newReq, err = http.NewRequest(req.Method, "http://127.0.0.1"+req.URL.Path, req.Body)
+			if err != nil {
+				return err
+			}
+
+			if newReq.Header == nil {
+				newReq.Header = map[string][]string{}
+			}
+
+			for key, values := range req.Header {
+				for _, value := range values {
+					newReq.Header.Add(key, value)
+				}
+			}
+
+			// 走 mesh
+			newReq.Header.Set("destination-service", psm)
+			newReq.Header.Set("destination-cluster", cluster)
+			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
+			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
+		} else {
+			// 走 dns
+			resp, err = c.Do(req.WithContext(ctx))
+		}
 		var opErr *net.OpError
 		if errors.As(err, &opErr) && opErr.Op == "dial" && opErr.Timeout() {
 			return err
@@ -254,7 +331,7 @@ func (c *HttpClient) DeleteJson(ctx context.Context, path string, headers map[st
 	return c.doRequest(ctx, req, headers, midList)
 }
 
-func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
+func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) context.Context {
 	// common: ppe or boe
 	env := utils.GetTTEnvFromCtx(ctx)
 	if strings.HasPrefix(env, "ppe_") {
@@ -268,10 +345,18 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
 	// lane
 	lane := utils.GetAPaaSLaneFromCtx(ctx)
 	if lane != "" {
-		req.Header.Add(constants.HttpHeaderKeyAPaaSLane, lane)
+		req.Header.Add(constants.HTTPHeaderKeyAPaaSLane, lane)
 	}
 
+	// add aPaaS persist key
+	utils.SetAPaaSPersistHeader(ctx, req.Header)
+
 	req.Header.Add(constants.HttpHeaderKeyLogID, utils.GetLogIDFromCtx(ctx))
+
+	// trace
+	for k, v := range utils.GetTraceHeader(ctx) {
+		req.Header.Set(k, v)
+	}
 
 	// divide open-api & faaS—infra
 	switch c.Type {
@@ -279,10 +364,17 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) {
 		req.Header.Add(constants.HttpHeaderKeySDKFuncMsg, getSDKFuncMsgValue(ctx))
 		// 运行时 faas 信息透传
 		ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFaaSType, utils.GetFaaSType(ctx))
+		if c.FromSDK != nil {
+			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKName, c.FromSDK.GetSDKName())
+			ctx = utils.WithAPaaSPersistFaaSValue(ctx, constants.PersistFaaSKeyFromSDKVersion, c.FromSDK.GetVersion())
+		}
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
+		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
 	}
+
+	return utils.SetKEnvToCtxForRPC(ctx)
 }
 
 func GetTimeoutCtx(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -304,7 +396,10 @@ func GetTimeoutCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 func getSDKFuncMsgValue(ctx context.Context) string {
 	funcMsgMap := map[string]interface{}{}
 	funcMsgMap["funcApiName"] = utils.GetFunctionNameFromCtx(ctx)
-	marshal, _ := json.Marshal(funcMsgMap)
+	marshal, err := utils.JsonMarshalBytes(funcMsgMap)
+	if err != nil {
+		return ""
+	}
 	return string(marshal)
 }
 
