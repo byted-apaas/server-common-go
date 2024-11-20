@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/byted-apaas/server-common-go/logger"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -180,9 +179,9 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	// 连接层超时
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
 		start := time.Now().UnixMilli()
-		logger.GetLogger(ctx).Infof("doRequest start, req: %v", req)
+		fmt.Printf("doRequest start, req: %v", req)
 		defer func() {
-			logger.GetLogger(ctx).Infof("doRequest end, cost: %v, req: %v", time.Now().UnixMilli()-start, req)
+			fmt.Printf("doRequest end, cost: %v, req: %v", time.Now().UnixMilli()-start, req)
 		}()
 		if utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil {
 			var newReq *http.Request
