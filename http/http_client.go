@@ -48,7 +48,7 @@ var (
 )
 
 func GetOpenapiClient() *HttpClient {
-	var maxConcurrent int = 10 // 设置最大并发数为10
+	var maxConcurrent int = 5 // 设置最大并发数为10
 	s := semaphore.NewWeighted(int64(maxConcurrent))
 	openapiClientOnce.Do(func() {
 		openapiClient = &HttpClient{
