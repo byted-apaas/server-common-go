@@ -36,6 +36,7 @@ type HttpClient struct {
 	http.Client
 	MeshClient *http.Client
 	FromSDK    version.ISDKInfo
+	mu         sync.Mutex // 添加互斥锁用于并发控制
 }
 
 var (
@@ -204,9 +205,15 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			newReq.Header.Set("destination-service", psm)
 			newReq.Header.Set("destination-cluster", cluster)
 			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
+
+			// 使用互斥锁保护对MeshClient的访问
+			c.mu.Lock()
+			defer c.mu.Unlock()
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
 			// 走 dns
+			c.mu.Lock()
+			defer c.mu.Unlock()
 			resp, err = c.Do(req.WithContext(ctx))
 		}
 		var opErr *net.OpError
