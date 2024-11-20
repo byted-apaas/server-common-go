@@ -181,7 +181,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		start := time.Now().UnixMilli()
 		fmt.Printf("doRequest start, req: %v", req)
 		defer func() {
-			fmt.Printf("doRequest end, cost: %v, req: %v", time.Now().UnixMilli()-start, req)
+			fmt.Printf("doRequest end, cost: %v, req: %v, err: %+v", time.Now().UnixMilli()-start, req, err)
 		}()
 		if utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil {
 			var newReq *http.Request
