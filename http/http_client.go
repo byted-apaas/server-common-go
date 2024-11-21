@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/semaphore"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -48,8 +47,6 @@ var (
 )
 
 func GetOpenapiClient() *HttpClient {
-	var maxConcurrent int = 5 // 设置最大并发数为10
-	s := semaphore.NewWeighted(int64(maxConcurrent))
 	openapiClientOnce.Do(func() {
 		openapiClient = &HttpClient{
 			Type: OpenAPIClient,
@@ -69,16 +66,16 @@ func GetOpenapiClient() *HttpClient {
 			openapiClient.MeshClient = &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						err := s.Acquire(ctx, 1)
-						if err != nil {
-							return nil, err
-						}
-						defer s.Release(1)
+						start := time.Now()
 						unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
 						if err != nil {
 							return nil, err
 						}
-						return net.DialUnix("unix", nil, unixAddr)
+						conn, err := net.DialUnix("unix", nil, unixAddr)
+						if err == nil {
+							fmt.Printf("建立连接耗时：%v", time.Since(start))
+						}
+						return conn, err
 					},
 					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
 					MaxIdleConns:        1000,
