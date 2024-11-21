@@ -79,7 +79,7 @@ func GetOpenapiClient() *HttpClient {
 					},
 					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
 					MaxIdleConns:        1000,
-					MaxIdleConnsPerHost: 10,
+					MaxIdleConnsPerHost: 100,
 					IdleConnTimeout:     60 * time.Second,
 				},
 			}
