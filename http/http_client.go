@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/byted-apaas/server-common-go/logger"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -177,8 +178,9 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	}
 
 	// 连接层超时
+	isUseMesh := utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
-		if utils.OpenMesh(ctx) && psm != "" && cluster != "" && c.MeshClient != nil {
+		if isUseMesh {
 			var newReq *http.Request
 			newReq, err = http.NewRequest(req.Method, "http://127.0.0.1"+req.URL.Path, req.Body)
 			if err != nil {
@@ -215,6 +217,11 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	if resp != nil && resp.Header != nil {
 		logid = resp.Header.Get(constants.HttpHeaderKeyLogID)
 		extra[constants.HttpHeaderKeyLogID] = logid
+		if isUseMesh {
+			meshFlag := resp.Header.Get(constants.HTTPHeaderEnvoyRespFlag)
+			extra[constants.HTTPHeaderEnvoyRespFlag] = meshFlag
+			logger.GetLogger(ctx).Infof("doRequest mesh resp mesh flag: %v", meshFlag)
+		}
 	}
 
 	if err != nil {
