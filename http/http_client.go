@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byted-apaas/server-common-go/logger"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -220,7 +219,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		if isUseMesh {
 			meshFlag := resp.Header.Get(constants.HTTPHeaderEnvoyRespFlag)
 			extra[constants.HTTPHeaderEnvoyRespFlag] = meshFlag
-			logger.GetLogger(ctx).Infof("doRequest mesh resp mesh flag: %v", meshFlag)
+			fmt.Printf("doRequest mesh resp: logID: %v, mesh flag: %v", logid, meshFlag)
 		}
 	}
 
