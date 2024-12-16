@@ -219,7 +219,11 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		if isUseMesh {
 			meshFlag := resp.Header.Get(constants.HTTPHeaderEnvoyRespFlag)
 			extra[constants.HTTPHeaderEnvoyRespFlag] = meshFlag
-			fmt.Printf("doRequest mesh resp: logID: %v, mesh flag: %v", logid, meshFlag)
+			urlPath := ""
+			if req != nil && req.URL != nil {
+				urlPath = req.URL.Path
+			}
+			fmt.Printf("doRequest mesh resp: logID: %v, mesh flag: %v, url path: %v", logid, meshFlag, urlPath)
 		}
 	}
 
