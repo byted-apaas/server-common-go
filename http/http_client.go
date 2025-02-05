@@ -20,7 +20,6 @@ import (
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
-	"github.com/byted-apaas/server-common-go/logger"
 	"github.com/byted-apaas/server-common-go/utils"
 	"github.com/byted-apaas/server-common-go/version"
 )
@@ -35,8 +34,9 @@ const (
 type HttpClient struct {
 	Type ClientType
 	http.Client
-	MeshClient *http.Client
-	FromSDK    version.ISDKInfo
+	MeshClient        *http.Client
+	FromSDK           version.ISDKInfo
+	rateLimitLogCount int64
 }
 
 var (
@@ -138,7 +138,26 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		fmt.Println(fmt.Sprintf("rate limiter reset from %d to %d, apiID: %s", limiter.maxRequest, quota, utils.GetFuncAPINameFromCtx(ctx)))
 	}
 	if !limiter.AllowRequest() {
-		logger.NewLogger(ctx).RateLimitLogger("request limit exceeded quota: %d qps", quota)
+		format := "request limit exceeded quota: %d qps"
+		formatLog := utils.FormatLog{
+			Level:         utils.LogLevelWarn,
+			EventID:       utils.GetExecuteIDFromCtx(ctx),
+			FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
+			LogID:         utils.GetLogIDFromCtx(ctx),
+			Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+			Message:       fmt.Sprintf(format, quota),
+			TenantID:      utils.GetTenantIDFromCtx(ctx),
+			TenantType:    utils.GetTenantTypeFromCtx(ctx),
+			Namespace:     utils.GetNamespaceFromCtx(ctx),
+			LogType:       constants.RateLimitLogType,
+		}
+
+		if c.rateLimitLogCount < utils.LogCountLimit {
+			c.rateLimitLogCount++
+			content := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			fmt.Println(content)
+
+		}
 		return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
 	}
 
