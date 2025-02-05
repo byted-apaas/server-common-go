@@ -170,6 +170,11 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	}
 }
 
+func (l *Logger) RateLimitLogger(format string, args ...interface{}) {
+	content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLogV2(LogLevelWarn, format, constants.RateLimitLogType, args...), constants.APaaSLogSuffix)
+	fmt.Println(content)
+}
+
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
@@ -198,9 +203,14 @@ type FormatLog struct {
 	TenantID      int64  `json:"tenant_id"`       // 租户 ID
 	TenantType    int64  `json:"tenant_type"`     // 租户 ID
 	Namespace     string `json:"namespace"`       // 命名空间
+	LogType       string `json:"log_type"`        // 日志类型
 }
 
 func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
+	return l.getFormatLogV2(level, format, constants.UserLogType, args)
+}
+
+func (l *Logger) getFormatLogV2(level int, format string, logType string, args ...interface{}) string {
 	content := fmt.Sprintf(format, args...)
 	if len(content) > LogLengthLimit {
 		content = content[:LogLengthLimit] + LogLengthLimitTip
@@ -219,6 +229,7 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 		TenantID:      l.tenantID,
 		TenantType:    l.tenantType,
 		Namespace:     l.namespace,
+		LogType:       logType,
 	}
 
 	jsonContent, err := utils.JsonMarshalBytes(formatLog)

@@ -66,6 +66,7 @@ const (
 	ExecuteID               = "x-serverless-execute-id"
 	FunctionAPIID           = "x-serverless-function-api-id"
 	HTTPHeaderEnvoyRespFlag = "x-envoy-response-flags"
+	PodRateLimitHeader      = "x-serverless-sdk-pod-rate-limit"
 )
 
 const (
@@ -114,6 +115,8 @@ const (
 )
 
 const (
-	APaaSLogPrefix = "apaas-log-prefix"
-	APaaSLogSuffix = "apaas-log-suffix"
+	APaaSLogPrefix   = "apaas-log-prefix"
+	APaaSLogSuffix   = "apaas-log-suffix"
+	UserLogType      = "user"
+	RateLimitLogType = "rate_limit"
 )

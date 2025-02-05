@@ -20,6 +20,7 @@ import (
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
+	"github.com/byted-apaas/server-common-go/logger"
 	"github.com/byted-apaas/server-common-go/utils"
 	"github.com/byted-apaas/server-common-go/version"
 )
@@ -131,6 +132,16 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 }
 
 func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
+	quota := utils.GetPodRateLimitFromCtx(ctx)
+	reset := limiter.ResetRateLimiter(quota)
+	if reset {
+		fmt.Println(fmt.Sprintf("rate limiter reset from %d to %d, apiID: %s", limiter.maxRequest, quota, utils.GetFuncAPINameFromCtx(ctx)))
+	}
+	if !limiter.AllowRequest() {
+		logger.NewLogger(ctx).RateLimitLogger("request limit exceeded quota: %d qps", quota)
+		return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
+	}
+
 	extra := map[string]interface{}{}
 
 	if ctx == nil {
