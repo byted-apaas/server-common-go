@@ -57,5 +57,6 @@ func (l *RateLimiter) AllowRequest() bool {
 		l.requests.PushBack(now)
 		return true
 	}
+
 	return false
 }

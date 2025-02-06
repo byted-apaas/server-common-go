@@ -132,11 +132,12 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 }
 
 func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
-	quota := utils.GetPodRateLimitFromCtx(ctx)
-	reset := limiter.ResetRateLimiter(quota)
-	if reset {
-		fmt.Println(fmt.Sprintf("rate limiter reset from %d to %d, apiID: %s", limiter.maxRequest, quota, utils.GetFuncAPINameFromCtx(ctx)))
+	quota := utils.GetPodRateLimitQuotaFromCtx(ctx)
+	oldQuota := limiter.maxRequest
+	if reset := limiter.ResetRateLimiter(quota); reset {
+		fmt.Println(fmt.Sprintf("rate limit reset from %d to %d, apiID: %s", oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx)))
 	}
+
 	if !limiter.AllowRequest() {
 		format := "request limit exceeded quota: %d qps"
 		formatLog := utils.FormatLog{
@@ -158,8 +159,16 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			fmt.Println(content)
 
 		}
-		return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
+		// 触发限流，禁止访问
+		if degree := utils.GetPodRateLimitSwitchFromCtx(ctx); !degree {
+			fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
+			return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
+		}
+		// 触发限流，降级通过
+		fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps, degree pass", utils.GetFunctionAPIIDFromCtx(ctx), quota))
 	}
+
+	fmt.Println(fmt.Sprintf("rate_limit function: %v do request quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
 
 	extra := map[string]interface{}{}
 
