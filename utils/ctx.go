@@ -176,12 +176,12 @@ func GetPodRateLimitQuotaFromCtx(ctx context.Context) int {
 	return cast
 }
 
-func SetPodRateLimitSwitchToCtx(ctx context.Context, switchOn bool) context.Context {
-	return context.WithValue(ctx, constants.PodRateLimitSwitchHeader, switchOn)
+func SetPodRateLimitDowngradeToCtx(ctx context.Context, switchOn bool) context.Context {
+	return context.WithValue(ctx, constants.PodRateLimitDowngradeHeader, switchOn)
 }
 
-func GetPodRateLimitSwitchFromCtx(ctx context.Context) bool {
-	cast, _ := ctx.Value(constants.PodRateLimitSwitchHeader).(bool)
+func GetPodRateLimitDowngradeFromCtx(ctx context.Context) bool {
+	cast, _ := ctx.Value(constants.PodRateLimitDowngradeHeader).(bool)
 	return cast
 }
 

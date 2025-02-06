@@ -160,12 +160,12 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 		}
 		// 触发限流，禁止访问
-		if degree := utils.GetPodRateLimitSwitchFromCtx(ctx); !degree {
+		if downgrade := utils.GetPodRateLimitDowngradeFromCtx(ctx); !downgrade {
 			fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
 			return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
 		}
 		// 触发限流，降级通过
-		fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps, degree pass", utils.GetFunctionAPIIDFromCtx(ctx), quota))
+		fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps, downgrade pass", utils.GetFunctionAPIIDFromCtx(ctx), quota))
 	}
 
 	fmt.Println(fmt.Sprintf("rate_limit function: %v do request quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
