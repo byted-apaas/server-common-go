@@ -135,7 +135,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	quota := utils.GetPodRateLimitQuotaFromCtx(ctx)
 	oldQuota := limiter.maxRequest
 	if reset := limiter.ResetRateLimiter(quota); reset {
-		fmt.Println(fmt.Sprintf("rate limit reset from %d to %d, apiID: %s", oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx)))
+		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx)))
 	}
 
 	if !limiter.AllowRequest() {
@@ -155,20 +155,20 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 
 		if c.rateLimitLogCount < utils.LogCountLimit {
 			c.rateLimitLogCount++
-			content := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
 			fmt.Println(content)
-
 		}
 		// 触发限流，禁止访问
 		if downgrade := utils.GetPodRateLimitDowngradeFromCtx(ctx); !downgrade {
-			fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
+			fmt.Println(fmt.Sprintf("%s rate_limit function: %v limit exceeded quota: %d qps", utils.GetFormatDate(), utils.GetFunctionAPIIDFromCtx(ctx), quota))
 			return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
 		}
 		// 触发限流，降级通过
-		fmt.Println(fmt.Sprintf("rate_limit function: %v limit exceeded quota: %d qps, downgrade pass", utils.GetFunctionAPIIDFromCtx(ctx), quota))
+		fmt.Println(fmt.Sprintf("%s rate_limit function: %v limit exceeded quota: %d qps, downgrade pass", utils.GetFormatDate(), utils.GetFunctionAPIIDFromCtx(ctx), quota))
 	}
 
-	fmt.Println(fmt.Sprintf("rate_limit function: %v do request quota: %d qps", utils.GetFunctionAPIIDFromCtx(ctx), quota))
+	fmt.Println(fmt.Sprintf("%s rate_limit function: %v do request quota: %d qps", utils.GetFormatDate(), utils.GetFunctionAPIIDFromCtx(ctx), quota))
 
 	extra := map[string]interface{}{}
 
