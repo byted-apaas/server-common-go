@@ -134,7 +134,7 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
 	quota := utils.GetPodRateLimitQuotaFromCtx(ctx)
 	oldQuota := limiter.maxRequest
-	if reset := limiter.ResetRateLimiter(quota); reset {
+	if reset := limiter.ResetRateLimiter(quota); reset && utils.GetDebugTypeFromCtx(ctx) == 0 { // debug 态不输出此日志
 		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s, tenantID: %d, namespace: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx), utils.GetTenantIDFromCtx(ctx), utils.GetNamespaceFromCtx(ctx)))
 	}
 
