@@ -63,9 +63,11 @@ const (
 	AuthTypeUser          = "user"
 	AuthTypeMixUserSystem = "mix_user_system" // OQL 场景需要，传该值时只有 select 过权限，where、orderBy 和 groupBy 都不影响
 
-	ExecuteID               = "x-serverless-execute-id"
-	FunctionAPIID           = "x-serverless-function-api-id"
-	HTTPHeaderEnvoyRespFlag = "x-envoy-response-flags"
+	ExecuteID                   = "x-serverless-execute-id"
+	FunctionAPIID               = "x-serverless-function-api-id"
+	HTTPHeaderEnvoyRespFlag     = "x-envoy-response-flags"
+	PodRateLimitQuotaHeader     = "x-serverless-sdk-pod-rate-limit-quota"
+	PodRateLimitDowngradeHeader = "x-serverless-sdk-pod-rate-limit-downgrade"
 )
 
 const (
@@ -114,6 +116,8 @@ const (
 )
 
 const (
-	APaaSLogPrefix = "apaas-log-prefix"
-	APaaSLogSuffix = "apaas-log-suffix"
+	APaaSLogPrefix   = "apaas-log-prefix"
+	APaaSLogSuffix   = "apaas-log-suffix"
+	UserLogType      = "user"
+	RateLimitLogType = "rate_limit"
 )

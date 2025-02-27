@@ -25,15 +25,6 @@ const (
 
 	NormalLog      = 1
 	AggregationLog = 2
-
-	LogLevelError = 4
-	LogLevelWarn  = 5
-	LogLevelInfo  = 6
-
-	LogCountLimit     = 10000
-	LogLengthLimit    = 10000
-	LogLengthLimitTip = `\n... The log has been truncated because it exceeds the length limit.`
-	LogCountLimitTip  = `The log has been discarded because it exceeded the limit of  10000`
 )
 
 type Tag struct {
@@ -145,10 +136,10 @@ func GetLogger(ctx context.Context) *Logger {
 func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
-		l.addLog(fmt.Sprintf(format, args...), LogLevelInfo, NormalLog)
-		if l.streamLogCount < LogCountLimit {
+		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelInfo, NormalLog)
+		if l.streamLogCount < utils.LogCountLimit {
 			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelInfo, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelInfo, format, args...), constants.APaaSLogSuffix)
 			fmt.Println(content)
 		}
 	} else {
@@ -159,10 +150,10 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
-		l.addLog(fmt.Sprintf(format, args...), LogLevelWarn, NormalLog)
-		if l.streamLogCount < LogCountLimit {
+		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelWarn, NormalLog)
+		if l.streamLogCount < utils.LogCountLimit {
 			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelWarn, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelWarn, format, args...), constants.APaaSLogSuffix)
 			fmt.Println(content)
 		}
 	} else {
@@ -173,10 +164,10 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
-		l.addLog(fmt.Sprintf(format, args...), LogLevelError, NormalLog)
-		if l.streamLogCount < LogCountLimit {
+		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelError, NormalLog)
+		if l.streamLogCount < utils.LogCountLimit {
 			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", getFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(LogLevelError, format, args...), constants.APaaSLogSuffix)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelError, format, args...), constants.APaaSLogSuffix)
 			fmt.Println(content)
 		}
 	} else {
@@ -184,49 +175,20 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	}
 }
 
-func getFormatDate() string {
-	return time.Now().Format("2006-01-02")
-}
-
-type FormatLog struct {
-	Level         int    `json:"level"`           // 日志级别, 4-error,5-warn,6-info
-	EventID       string `json:"event_id"`        // 事件 ID，可观测需要
-	FunctionAPIID string `json:"function_api_id"` // 函数 API ID
-	LogID         string `json:"log_id"`          // 日志 ID，事件编号与日志编号有一一对应关系
-	Timestamp     int64  `json:"timestamp"`       // 时间
-	Message       string `json:"message"`         // 用户的日志内容，SDK 会对超长日志截断
-	TenantID      int64  `json:"tenant_id"`       // 租户 ID
-	TenantType    int64  `json:"tenant_type"`     // 租户 ID
-	Namespace     string `json:"namespace"`       // 命名空间
-}
-
 func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
-	content := fmt.Sprintf(format, args...)
-	if len(content) > LogLengthLimit {
-		content = content[:LogLengthLimit] + LogLengthLimitTip
-	}
-	if l.streamLogCount == LogCountLimit {
-		content = content + LogCountLimitTip
-	}
-
-	formatLog := FormatLog{
+	formatLog := utils.FormatLog{
 		Level:         level,
 		EventID:       l.executeID,
 		FunctionAPIID: l.functionAPIID,
 		LogID:         l.RequestID,
 		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
-		Message:       content,
+		Message:       fmt.Sprintf(format, args...),
 		TenantID:      l.tenantID,
 		TenantType:    l.tenantType,
 		Namespace:     l.namespace,
+		LogType:       constants.UserLogType,
 	}
-
-	jsonContent, err := utils.JsonMarshalBytes(formatLog)
-	if err != nil {
-		utils.GetConsoleLogger(l.RequestID).Errorf("[Logger] getFormatLog failed, err: %v", err)
-	}
-
-	return string(jsonContent)
+	return utils.GetFormatLogWithMessage(formatLog, l.streamLogCount)
 }
 
 func Send(ctx context.Context, l *Logger) {
@@ -247,7 +209,7 @@ func Send(ctx context.Context, l *Logger) {
 	if len(l.logs) == 0 {
 		return
 	}
-	l.addLog("", LogLevelInfo, AggregationLog)
+	l.addLog("", utils.LogLevelInfo, AggregationLog)
 
 	data, err = utils.JsonMarshalBytes(l.logs)
 	if err != nil {
@@ -262,12 +224,12 @@ func Send(ctx context.Context, l *Logger) {
 }
 
 func (l *Logger) addLog(content string, level int, logType int) {
-	if logType == NormalLog && len(l.logs) >= LogCountLimit {
+	if logType == NormalLog && len(l.logs) >= utils.LogCountLimit {
 		return
 	}
 
-	if len(content) > LogLengthLimit {
-		content = content[:LogLengthLimit] + LogLengthLimitTip
+	if len(content) > utils.LogLengthLimit {
+		content = content[:utils.LogLengthLimit] + utils.LogLengthLimitTip
 	}
 
 	log := Log{
@@ -291,7 +253,7 @@ func (l *Logger) addLog(content string, level int, logType int) {
 		log.ExtraInfo = l.extraInfo
 		log = l.tagsAddNum(log)
 		if l.errorNum > 0 {
-			log.Level = LogLevelError
+			log.Level = utils.LogLevelError
 		}
 		log.ExtraInfo.TriggerTimeCost = curTime - l.startTriggerTime
 		log.ExtraInfo.RuntimeCost = curTime - l.startRuntime
@@ -305,9 +267,9 @@ func (l *Logger) addLog(content string, level int, logType int) {
 		return
 	}
 
-	if len(l.logs) < LogCountLimit {
-		if len(l.logs) == LogCountLimit-1 {
-			log.Content = LogCountLimitTip
+	if len(l.logs) < utils.LogCountLimit {
+		if len(l.logs) == utils.LogCountLimit-1 {
+			log.Content = utils.LogCountLimitTip
 		}
 		b, _ := utils.JsonMarshalBytes(log)
 		l.lock.Lock()

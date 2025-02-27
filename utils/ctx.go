@@ -167,6 +167,24 @@ func GetExecuteIDFromCtx(ctx context.Context) string {
 	return cast
 }
 
+func SetPodRateLimitQuotaToCtx(ctx context.Context, quota int) context.Context {
+	return context.WithValue(ctx, constants.PodRateLimitQuotaHeader, quota)
+}
+
+func GetPodRateLimitQuotaFromCtx(ctx context.Context) int {
+	cast, _ := ctx.Value(constants.PodRateLimitQuotaHeader).(int)
+	return cast
+}
+
+func SetPodRateLimitDowngradeToCtx(ctx context.Context, switchOn bool) context.Context {
+	return context.WithValue(ctx, constants.PodRateLimitDowngradeHeader, switchOn)
+}
+
+func GetPodRateLimitDowngradeFromCtx(ctx context.Context) bool {
+	cast, _ := ctx.Value(constants.PodRateLimitDowngradeHeader).(bool)
+	return cast
+}
+
 func GetFunctionAPIIDFromCtx(ctx context.Context) string {
 	cast, _ := ctx.Value(constants.FunctionAPIID).(string)
 

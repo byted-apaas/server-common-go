@@ -34,8 +34,9 @@ const (
 type HttpClient struct {
 	Type ClientType
 	http.Client
-	MeshClient *http.Client
-	FromSDK    version.ISDKInfo
+	MeshClient        *http.Client
+	FromSDK           version.ISDKInfo
+	rateLimitLogCount int64
 }
 
 var (
@@ -131,6 +132,40 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 }
 
 func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
+	quota := utils.GetPodRateLimitQuotaFromCtx(ctx)
+	oldQuota := limiter.maxRequest
+	if reset := limiter.ResetRateLimiter(quota); reset && utils.GetDebugTypeFromCtx(ctx) == 0 { // debug 态不输出此日志
+		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s, tenantID: %d, namespace: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx), utils.GetTenantIDFromCtx(ctx), utils.GetNamespaceFromCtx(ctx)))
+	}
+
+	if !limiter.AllowRequest() {
+		format := "request limit exceeded quota: %d qps"
+		formatLog := utils.FormatLog{
+			Level:         utils.LogLevelWarn,
+			EventID:       utils.GetExecuteIDFromCtx(ctx),
+			FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
+			LogID:         utils.GetLogIDFromCtx(ctx),
+			Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+			Message:       fmt.Sprintf(format, quota),
+			TenantID:      utils.GetTenantIDFromCtx(ctx),
+			TenantType:    utils.GetTenantTypeFromCtx(ctx),
+			Namespace:     utils.GetNamespaceFromCtx(ctx),
+			LogType:       constants.RateLimitLogType,
+		}
+
+		if c.rateLimitLogCount < utils.LogCountLimit {
+			c.rateLimitLogCount++
+			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
+			fmt.Println(content)
+		}
+		// 触发限流，禁止访问
+		if downgrade := utils.GetPodRateLimitDowngradeFromCtx(ctx); !downgrade {
+			return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
+		}
+		// 触发限流，降级通过
+	}
+
 	extra := map[string]interface{}{}
 
 	if ctx == nil {
