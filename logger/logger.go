@@ -309,6 +309,9 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 		}, {
 			Key:   "functionAPIID",
 			Value: utils.GetFunctionAPIIDFromCtx(ctx),
+		}, {
+			Key:   "eventID",
+			Value: utils.GetExecuteIDFromCtx(ctx),
 		},
 	}
 }
