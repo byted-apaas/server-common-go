@@ -46,13 +46,14 @@ type ExtraInfo struct {
 }
 
 type Log struct {
-	Domain     string `json:"domain"`
-	Type       int    `json:"type"`
-	Level      int    `json:"level"`
-	CreateTime int64  `json:"createTime"`
-	RequestID  string `json:"RequestID"`
-	Sequence   int64  `json:"sequence"`
-	Content    string `json:"content"`
+	Domain          string `json:"domain"`
+	Type            int    `json:"type"`
+	Level           int    `json:"level"`
+	CreateTime      int64  `json:"createTime"` // 毫秒级时间戳
+	RequestID       string `json:"RequestID"`
+	Sequence        int64  `json:"sequence"`
+	Content         string `json:"content"`
+	CreateTimeMicro *int64 `json:"createTimeMicro"` // 微秒级时间戳
 
 	Tags      []Tag     `json:"tags"`
 	TagsI18n  []I18nTag `json:"tagsI18n"`
@@ -233,16 +234,17 @@ func (l *Logger) addLog(content string, level int, logType int) {
 	}
 
 	log := Log{
-		Domain:     LogDomain,
-		RequestID:  l.RequestID,
-		Type:       logType,
-		Level:      level,
-		CreateTime: TimeNowMils(),
-		Sequence:   l.getSequence(),
-		Content:    content,
-		Tags:       make([]Tag, 0),
-		TagsI18n:   make([]I18nTag, 0),
-		ExtraInfo:  ExtraInfo{},
+		Domain:          LogDomain,
+		RequestID:       l.RequestID,
+		Type:            logType,
+		Level:           level,
+		CreateTime:      TimeNowMils(),
+		CreateTimeMicro: TimeNowMicros(), // 用于旧日志转发到可观测
+		Sequence:        l.getSequence(),
+		Content:         content,
+		Tags:            make([]Tag, 0),
+		TagsI18n:        make([]I18nTag, 0),
+		ExtraInfo:       ExtraInfo{},
 	}
 
 	// 聚合日志
@@ -301,6 +303,15 @@ func (l *Logger) getTags(ctx context.Context) []Tag {
 		}, {
 			Key:   "instanceID",
 			Value: strconv.FormatInt(getFunctionLoggerExtraToCtx(ctx).InstanceID, 10),
+		}, {
+			Key:   "tenantType",
+			Value: strconv.FormatInt(utils.GetTenantTypeFromCtx(ctx), 10),
+		}, {
+			Key:   "functionAPIID",
+			Value: utils.GetFunctionAPIIDFromCtx(ctx),
+		}, {
+			Key:   "eventID",
+			Value: utils.GetExecuteIDFromCtx(ctx),
 		},
 	}
 }
@@ -347,6 +358,11 @@ func (l *Logger) tagsAddNum(log Log) Log {
 
 func TimeNowMils() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
+func TimeNowMicros() *int64 {
+	t := time.Now().UnixNano() / int64(time.Microsecond)
+	return &t
 }
 
 func CompressForDeflate(b []byte) (string, error) {
