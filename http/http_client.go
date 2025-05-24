@@ -166,6 +166,15 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		// 触发限流，降级通过
 	}
 
+	if utils.GetAPaaSPersistFaaSPressureNeedDecelerate(ctx) { // 是否需要降速
+		InitPressureDecelerator(ctx)
+		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
+		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 { // 需要降速
+			// todo 降速数据上报
+			time.Sleep(time.Duration(sleeptime))
+		}
+	}
+
 	extra := map[string]interface{}{}
 
 	if ctx == nil {

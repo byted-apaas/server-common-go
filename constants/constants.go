@@ -98,6 +98,23 @@ const (
 
 	PersistFaaSKeyFromSDKName    = "x-apaas-persist-faas-from-sdk-name"
 	PersistFaaSKeyFromSDKVersion = "x-apaas-persist-faas-from-sdk-version"
+
+	// PersistFaaSKeyRequestSource 溯源流量key
+	PersistFaaSKeyRequestSource = APAAS_PERSIST_FAAS_PREFIX + "request-source"
+
+	// 反压中心
+
+	// PersistFaaSKeyPressureNeedDecelerate 反压中心是否需要降速，由CloudFunction下发该开关
+	PersistFaaSKeyPressureNeedDecelerate = APAAS_PERSIST_FAAS_PREFIX + "pressure-need-decelerate"
+
+	// PersistFaaSKeyPressureConfig 反压中心相关配置，由CloudFunction下发该开关
+	PersistFaaSKeyPressureConfig = APAAS_PERSIST_FAAS_PREFIX + "pressure-config"
+
+	// RequestSourcePressureSignalId  RequestSource 中的 PressureSignalId，用于反压中心识别异步链路
+	RequestSourcePressureSignalId = "PressureSignalId"
+
+	// RequestSourceIsAsync  RequestSource 中的 IsAsync，用于反压中心标识是否异步链路
+	RequestSourceIsAsync = "IsAsync"
 )
 
 const (

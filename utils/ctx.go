@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/buger/jsonparser"
+
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
 	"github.com/byted-apaas/server-common-go/structs"
@@ -700,4 +702,36 @@ func IsRuntime(ctx context.Context) bool {
 	}
 
 	return GetRuntimeType(ctx) == RuntimeTypeRuntime
+}
+
+// GetAPaaSPersistFaaSPressureSignalId 获取request_source中的压力信号id
+func GetAPaaSPersistFaaSPressureSignalId(ctx context.Context) string {
+
+	reqSrc := GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyRequestSource)
+	if reqSrc == "" {
+		fmt.Println("GetAPaaSPersistFaaSValueFromCtx request_source is empty")
+		return ""
+	}
+
+	value, err := jsonparser.GetString([]byte(reqSrc), constants.RequestSourcePressureSignalId)
+	if err != nil { // maybe key not exist
+		fmt.Println("GetAPaaSPersistFaaSPressureSignalId jsonparser get key error: ", err.Error())
+		return ""
+	}
+
+	return value
+}
+
+// GetAPaaSPersistFaaSPressureNeedDecelerate 获取是否需要降速
+func GetAPaaSPersistFaaSPressureNeedDecelerate(ctx context.Context) bool {
+	needDecelerate := GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyPressureNeedDecelerate)
+	if strings.ToLower(needDecelerate) == "true" { // 当且仅当 need_decelerate 为 true 时降速，其余情况不降速
+		return true
+	}
+	return false
+}
+
+// GetAPaaSPersistFaaSPressureConfig 获取反压中心降速配置
+func GetAPaaSPersistFaaSPressureConfig(ctx context.Context) string {
+	return GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyPressureConfig)
 }

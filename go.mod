@@ -3,6 +3,7 @@ module github.com/byted-apaas/server-common-go
 go 1.16
 
 require (
+	github.com/buger/jsonparser v1.1.1
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/json-iterator/go v1.1.12
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
