@@ -111,10 +111,10 @@ const (
 	PersistFaaSKeyPressureConfig = APAAS_PERSIST_FAAS_PREFIX + "pressure-config"
 
 	// RequestSourcePressureSignalId  RequestSource 中的 PressureSignalId，用于反压中心识别异步链路
-	RequestSourcePressureSignalId = "PressureSignalId"
+	RequestSourcePressureSignalId = "pressureSignalId"
 
 	// RequestSourceIsAsync  RequestSource 中的 IsAsync，用于反压中心标识是否异步链路
-	RequestSourceIsAsync = "IsAsync"
+	RequestSourceIsAsync = "isAsync"
 )
 
 const (
