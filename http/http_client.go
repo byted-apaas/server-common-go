@@ -166,10 +166,10 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		// 触发限流，降级通过
 	}
 
-	if utils.GetAPaaSPersistFaaSPressureNeedDecelerate(ctx) { // 是否需要降速
-		InitPressureDecelerator(ctx)
+	// pressureDecelerator 需要在 webframe 请求进入前调用 InitPressureDecelerator 方法进行初始化，否则无法降速
+	if pressureDecelerator != nil && utils.GetAPaaSPersistFaaSPressureNeedDecelerate(ctx) { // 判断是否需要降速
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
-		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 { // 需要降速
+		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
 			// todo 降速数据上报
 			time.Sleep(time.Duration(sleeptime))
 		}

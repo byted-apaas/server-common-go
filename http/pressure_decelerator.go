@@ -31,7 +31,7 @@ type PressureDeceleratorItem struct {
 	lastReqTime int64 // last request time, unit: ms
 }
 
-func NewPressureDecelerator(ctx context.Context, client IPressureHttpClient, config *PressureConfig) *PressureDecelerator {
+func NewPressureDecelerator(ctx context.Context, config *PressureConfig, client IPressureHttpClient) *PressureDecelerator {
 	if config == nil {
 		config = &defaultPressureConfig
 	}
@@ -68,7 +68,7 @@ func (pd *PressureDecelerator) setConfig(config *PressureConfig) {
 
 func (pd *PressureDecelerator) GetSleeptime(key string) int64 {
 
-	if key == "" {
+	if key == "" { // if pd == nil || key == "" { return 0 }
 		return 0
 	}
 

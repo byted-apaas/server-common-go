@@ -33,15 +33,15 @@ var (
 	}
 )
 
-// json unmarshal without error
-func jsonUnmarshalPressureConfigStr(data string) *PressureConfig {
+// NewPressureConfigByJsonStr new PressureConfig, replace illegal field values with default values
+func NewPressureConfigByJsonStr(data string) *PressureConfig {
 	if data == "" {
 		return &defaultPressureConfig
 	}
 
 	var conf PressureConfig
 	if err := json.Unmarshal([]byte(data), &conf); err != nil {
-		fmt.Println("jsonUnmarshalPressureConfigStr error : ", err.Error())
+		fmt.Println("NewPressureConfigByJsonStr json unmarshal error : ", err.Error())
 		conf = defaultPressureConfig
 	}
 
@@ -65,15 +65,18 @@ var (
 	pressureDeceleratorOnce sync.Once
 )
 
+// InitPressureDecelerator 初始化 pressureDecelerator
 func InitPressureDecelerator(ctx context.Context) {
+	config := NewPressureConfigByJsonStr(utils.GetAPaaSPersistFaaSPressureConfig(ctx))
 	pressureDeceleratorOnce.Do(func() {
-		config := jsonUnmarshalPressureConfigStr(utils.GetAPaaSPersistFaaSPressureConfig(ctx))
 		client := &MockPressureHttpClient{}
-		pressureDecelerator = NewPressureDecelerator(ctx, client, config) // todo
+		pressureDecelerator = NewPressureDecelerator(ctx, config, client)
 		go func() {
 			pressureDecelerator.RunUpdateTask() // 启动刷新任务
 		}()
 	})
+	UpdatePressureConfig(config)
+	UpdatePressureContext(ctx)
 }
 
 func UpdatePressureConfig(config *PressureConfig) {
