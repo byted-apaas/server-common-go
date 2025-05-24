@@ -67,7 +67,7 @@ var (
 
 // InitPressureDecelerator 初始化 pressureDecelerator
 func InitPressureDecelerator(ctx context.Context) {
-	config := NewPressureConfigByJsonStr(utils.GetAPaaSPersistFaaSPressureConfig(ctx))
+	config := NewPressureConfigByJsonStr(utils.GetPressureConfigFromCtx(ctx))
 	pressureDeceleratorOnce.Do(func() {
 		client := &MockPressureHttpClient{}
 		pressureDecelerator = NewPressureDecelerator(ctx, config, client)

@@ -187,6 +187,34 @@ func GetPodRateLimitDowngradeFromCtx(ctx context.Context) bool {
 	return cast
 }
 
+// SetPressureNeedDecelerateToCtx 设置是否需要降速
+func SetPressureNeedDecelerateToCtx(ctx context.Context, needDecelerate bool) context.Context {
+	return context.WithValue(ctx, constants.PressureNeedDecelerateHeader, needDecelerate)
+}
+
+// GetPressureNeedDecelerateFromCtx 获取是否需要降速
+func GetPressureNeedDecelerateFromCtx(ctx context.Context) bool {
+	value := ctx.Value(constants.PressureNeedDecelerateHeader)
+	if value == nil { // key不存在则默认为false
+		return false
+	}
+	return value.(bool)
+}
+
+// SetPressureConfigToCtx 设置反压中心降速配置
+func SetPressureConfigToCtx(ctx context.Context, pressureConfig string) context.Context {
+	return context.WithValue(ctx, constants.PressureConfigHeader, pressureConfig)
+}
+
+// GetPressureConfigFromCtx 获取反压中心降速配置
+func GetPressureConfigFromCtx(ctx context.Context) string {
+	value := ctx.Value(constants.PressureConfigHeader)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
+}
+
 func GetFunctionAPIIDFromCtx(ctx context.Context) string {
 	cast, _ := ctx.Value(constants.FunctionAPIID).(string)
 
@@ -720,18 +748,4 @@ func GetAPaaSPersistFaaSPressureSignalId(ctx context.Context) string {
 	}
 
 	return value
-}
-
-// GetAPaaSPersistFaaSPressureNeedDecelerate 获取是否需要降速
-func GetAPaaSPersistFaaSPressureNeedDecelerate(ctx context.Context) bool {
-	needDecelerate := GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyPressureNeedDecelerate)
-	if strings.ToLower(needDecelerate) == "true" { // 当且仅当 need_decelerate 为 true 时降速，其余情况不降速
-		return true
-	}
-	return false
-}
-
-// GetAPaaSPersistFaaSPressureConfig 获取反压中心降速配置
-func GetAPaaSPersistFaaSPressureConfig(ctx context.Context) string {
-	return GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyPressureConfig)
 }

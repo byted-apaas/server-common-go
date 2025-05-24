@@ -68,6 +68,9 @@ const (
 	HTTPHeaderEnvoyRespFlag     = "x-envoy-response-flags"
 	PodRateLimitQuotaHeader     = "x-serverless-sdk-pod-rate-limit-quota"
 	PodRateLimitDowngradeHeader = "x-serverless-sdk-pod-rate-limit-downgrade"
+
+	PressureNeedDecelerateHeader = "x-serverless-sdk-pressure-need-decelerate" // 反压中心是否需要降速，由CloudFunction下发该开关
+	PressureConfigHeader         = "x-serverless-sdk-pressure-config"          // 反压中心相关配置，由CloudFunction下发该配置
 )
 
 const (
@@ -101,14 +104,6 @@ const (
 
 	// PersistFaaSKeyRequestSource 溯源流量key
 	PersistFaaSKeyRequestSource = APAAS_PERSIST_FAAS_PREFIX + "request-source"
-
-	// 反压中心
-
-	// PersistFaaSKeyPressureNeedDecelerate 反压中心是否需要降速，由CloudFunction下发该开关
-	PersistFaaSKeyPressureNeedDecelerate = APAAS_PERSIST_FAAS_PREFIX + "pressure-need-decelerate"
-
-	// PersistFaaSKeyPressureConfig 反压中心相关配置，由CloudFunction下发该开关
-	PersistFaaSKeyPressureConfig = APAAS_PERSIST_FAAS_PREFIX + "pressure-config"
 
 	// RequestSourcePressureSignalId  RequestSource 中的 PressureSignalId，用于反压中心识别异步链路
 	RequestSourcePressureSignalId = "pressureSignalId"

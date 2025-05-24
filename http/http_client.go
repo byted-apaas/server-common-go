@@ -29,6 +29,7 @@ type ClientType int
 const (
 	OpenAPIClient ClientType = iota + 1
 	FaaSInfraClient
+	PressureHttpSdkClient
 )
 
 type HttpClient struct {
@@ -138,7 +139,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s, tenantID: %d, namespace: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx), utils.GetTenantIDFromCtx(ctx), utils.GetNamespaceFromCtx(ctx)))
 	}
 
-	if !limiter.AllowRequest() {
+	if c.Type != PressureHttpSdkClient && !limiter.AllowRequest() { // 非反压中心sdk请求
 		format := "request limit exceeded quota: %d qps"
 		formatLog := utils.FormatLog{
 			Level:         utils.LogLevelWarn,
@@ -167,7 +168,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	}
 
 	// pressureDecelerator 需要在 webframe 请求进入前调用 InitPressureDecelerator 方法进行初始化，否则无法降速
-	if pressureDecelerator != nil && utils.GetAPaaSPersistFaaSPressureNeedDecelerate(ctx) { // 判断是否需要降速
+	if c.Type != PressureHttpSdkClient && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) { // 非反压中心请求 & 反压类已初始化 & 需要降速
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
 		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
 			// todo 降速数据上报
