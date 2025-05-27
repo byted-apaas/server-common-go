@@ -114,13 +114,13 @@ func (pd *PressureDecelerator) RunUpdateTask() {
 				now := getCurrentTimestampMs()
 				fmt.Printf("PressureDecelerator ticker update task started at %v\n", now)
 				updateKeys := make([]string, 0, atomic.LoadInt64(&pd.size)+20) // 多设置20个预留，可能中途有新增的
-				sortKeys := make([]int64, 0, atomic.LoadInt64(&pd.size)+20)
+				sortKeys := make(map[string]int64, atomic.LoadInt64(&pd.size))
 				evictKeys := make([]string, 0, atomic.LoadInt64(&pd.size)) // 还是记录淘汰key列表，使用updateKeys取反会把中途新增的新key也淘汰掉
 				pd.cache.Range(func(key, value interface{}) bool {
 					item := value.(*PressureDeceleratorItem)
 					if lastReqTime := atomic.LoadInt64(&item.lastReqTime); now-lastReqTime <= pd.getConfig().EvictThreshold {
 						updateKeys = append(updateKeys, item.key)
-						sortKeys = append(sortKeys, lastReqTime)
+						sortKeys[item.key] = lastReqTime
 					} else {
 						evictKeys = append(evictKeys, item.key)
 					}
@@ -131,7 +131,7 @@ func (pd *PressureDecelerator) RunUpdateTask() {
 					return
 				}
 				sort.Slice(updateKeys, func(i, j int) bool { // 按last_req_time降序排序
-					return sortKeys[i] > sortKeys[j]
+					return sortKeys[updateKeys[i]] > sortKeys[updateKeys[j]]
 				})
 				if maxKeyCap := pd.getConfig().MaxKeyCapacity; len(updateKeys) > maxKeyCap { // 仍超过最大容量，淘汰最早的
 					pd.evictKeys(updateKeys[maxKeyCap:])
