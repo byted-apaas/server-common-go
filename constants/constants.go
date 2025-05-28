@@ -131,5 +131,6 @@ const (
 	APaaSLogPrefix   = "apaas-log-prefix"
 	APaaSLogSuffix   = "apaas-log-suffix"
 	UserLogType      = "user"
-	RateLimitLogType = "rate_limit"
+	RateLimitLogType = "rate_limit" // SDK 限流
+	SpeedDownLogType = "speed_down" // SDK 降速
 )

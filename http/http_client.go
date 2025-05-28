@@ -6,6 +6,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -171,6 +172,28 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	if c.Type != PressureHttpSdkClient && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) { // 非反压中心请求 & 反压类已初始化 & 需要降速
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
 		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
+			msg := struct {
+				Key       string `json:"key"`
+				SleepTime int64  `json:"sleeptime"`
+			}{}
+			msgBytes, _ := json.Marshal(msg)
+			formatLog := utils.FormatLog{
+				Level:         utils.LogLevelWarn,
+				EventID:       utils.GetExecuteIDFromCtx(ctx),
+				FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
+				LogID:         utils.GetLogIDFromCtx(ctx),
+				Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+				Message:       string(msgBytes),
+				TenantID:      utils.GetTenantIDFromCtx(ctx),
+				TenantType:    utils.GetTenantTypeFromCtx(ctx),
+				Namespace:     utils.GetNamespaceFromCtx(ctx),
+				LogType:       constants.SpeedDownLogType,
+			}
+
+			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
+			fmt.Println(content)
+
 			// todo 降速数据上报
 			fmt.Printf("[%s] pressure decelerate %d ms", key, sleeptime)
 			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
