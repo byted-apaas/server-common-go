@@ -69,7 +69,8 @@ var (
 func InitPressureDecelerator(ctx context.Context) {
 	config := NewPressureConfigByJsonStr(utils.GetPressureConfigFromCtx(ctx))
 	pressureDeceleratorOnce.Do(func() {
-		client := &MockPressureHttpClient{}
+		//client := &MockPressureHttpClient{}
+		client := &PressureHttpClient{}
 		pressureDecelerator = NewPressureDecelerator(ctx, config, client)
 		go func() {
 			pressureDecelerator.RunUpdateTask() // 启动刷新任务

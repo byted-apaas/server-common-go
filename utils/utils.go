@@ -69,6 +69,20 @@ func GetFaaSInfraDomain(ctx context.Context) string {
 	return ""
 }
 
+func GetPressureSdkDomain(ctx context.Context) string {
+	domain := os.Getenv(constants.EnvKPressureSdkDomain)
+	if domain != "" {
+		return domain
+	}
+
+	if ctx != nil {
+		if domain, _ = ctx.Value(constants.CtxKeyPressureSdkDomain).(string); domain != "" {
+			return domain
+		}
+	}
+	return ""
+}
+
 func GetAGWDomain(ctx context.Context) string {
 	domain := os.Getenv(constants.EnvKInnerAPIDomain)
 	if domain != "" {

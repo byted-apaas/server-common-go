@@ -30,7 +30,7 @@ type ClientType int
 const (
 	OpenAPIClient ClientType = iota + 1
 	FaaSInfraClient
-	PressureHttpSdkClient
+	PressureSdkClient
 )
 
 type HttpClient struct {
@@ -39,6 +39,7 @@ type HttpClient struct {
 	MeshClient        *http.Client
 	FromSDK           version.ISDKInfo
 	rateLimitLogCount int64
+	skipPreIntercept  bool // 跳过前置拦截，rate limit & pressure decelerate
 }
 
 var (
@@ -47,6 +48,9 @@ var (
 
 	fsInfraClientOnce sync.Once
 	fsInfraClient     *HttpClient
+
+	pressureSdkClientOnce sync.Once
+	pressureSdkClient     *HttpClient
 )
 
 func GetOpenapiClient() *HttpClient {
@@ -122,12 +126,50 @@ func GetFaaSInfraClient(ctx context.Context) *HttpClient {
 	return fsInfraClient
 }
 
+func GetPressureSdkClient() *HttpClient {
+	pressureSdkClientOnce.Do(func() {
+		pressureSdkClient = &HttpClient{
+			Type: PressureSdkClient,
+			Client: http.Client{
+				Transport: &http.Transport{
+					DialContext:         TimeoutDialer(constants.HttpClientDialTimeoutDefault, 0),
+					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
+					MaxIdleConns:        1000,
+					MaxIdleConnsPerHost: 10,
+					IdleConnTimeout:     60 * time.Second,
+				},
+			},
+			skipPreIntercept: true,
+		}
+		if utils.EnableMesh() {
+			pressureSdkClient.MeshClient = &http.Client{
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						unixAddr, err := net.ResolveUnixAddr("unix", utils.GetSocketAddr())
+						if err != nil {
+							return nil, err
+						}
+						return net.DialUnix("unix", nil, unixAddr)
+					},
+					TLSHandshakeTimeout: constants.HttpClientTLSTimeoutDefault,
+					MaxIdleConns:        1000,
+					MaxIdleConnsPerHost: 10,
+					IdleConnTimeout:     60 * time.Second,
+				},
+			}
+		}
+	})
+	return pressureSdkClient
+}
+
 func (c *HttpClient) getActualDomain(ctx context.Context) string {
 	switch c.Type {
 	case OpenAPIClient:
 		return utils.GetOpenAPIDomain(ctx)
 	case FaaSInfraClient:
 		return utils.GetFaaSInfraDomain(ctx)
+	case PressureSdkClient:
+		return utils.GetPressureSdkDomain(ctx)
 	default:
 		return ""
 	}
@@ -140,7 +182,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s, tenantID: %d, namespace: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx), utils.GetTenantIDFromCtx(ctx), utils.GetNamespaceFromCtx(ctx)))
 	}
 
-	if c.Type != PressureHttpSdkClient && !limiter.AllowRequest() { // 非反压中心sdk请求
+	if !c.skipPreIntercept && !limiter.AllowRequest() {
 		format := "request limit exceeded quota: %d qps"
 		formatLog := utils.FormatLog{
 			Level:         utils.LogLevelWarn,
@@ -169,7 +211,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	}
 
 	// pressureDecelerator 需要在 webframe 请求进入前调用 InitPressureDecelerator 方法进行初始化，否则无法降速
-	if c.Type != PressureHttpSdkClient && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) { // 非反压中心请求 & 反压类已初始化 & 需要降速
+	if !c.skipPreIntercept && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) {
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
 		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
 			msg := struct {
@@ -193,8 +235,6 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
 			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
 			fmt.Println(content)
-
-			// todo 降速数据上报
 			fmt.Printf("[%s] pressure decelerate %d ms", key, sleeptime)
 			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 		}
@@ -451,6 +491,7 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
+	case PressureSdkClient:
 	}
 
 	return utils.SetKEnvToCtxForRPC(ctx)

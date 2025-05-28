@@ -27,7 +27,7 @@ type PressureDecelerator struct {
 type PressureDeceleratorItem struct {
 	first       sync.Once // first time load
 	key         string
-	sleeptime   int64 // unit: ms
+	sleeptime   int32 // unit: ms
 	lastReqTime int64 // last request time, unit: ms
 }
 
@@ -66,7 +66,7 @@ func (pd *PressureDecelerator) setConfig(config *PressureConfig) {
 	pd.config.Store(config)
 }
 
-func (pd *PressureDecelerator) GetSleeptime(key string) int64 {
+func (pd *PressureDecelerator) GetSleeptime(key string) int32 {
 
 	if key == "" { // if pd == nil || key == "" { return 0 }
 		return 0
@@ -89,7 +89,7 @@ func (pd *PressureDecelerator) GetSleeptime(key string) int64 {
 	})
 	atomic.StoreInt64(&item.lastReqTime, getCurrentTimestampMs())
 
-	return atomic.LoadInt64(&item.sleeptime)
+	return atomic.LoadInt32(&item.sleeptime)
 }
 
 func (pd *PressureDecelerator) updateOne(item *PressureDeceleratorItem) {
@@ -99,10 +99,10 @@ func (pd *PressureDecelerator) updateOne(item *PressureDeceleratorItem) {
 		fmt.Println("PressureDecelerator http client GetSleeptime error : ", err.Error())
 	}
 	if maxSleeptime := pd.getConfig().MaxSleeptime; maxSleeptime > 0 { // max_sleeptime < 0 表示不限制，max_sleeptime > 0，最大为 max_sleeptime
-		st = minInt64(st, maxSleeptime)
+		st = minInt32(st, int32(maxSleeptime))
 	}
 
-	atomic.StoreInt64(&item.sleeptime, st)
+	atomic.StoreInt32(&item.sleeptime, st)
 }
 
 func (pd *PressureDecelerator) RunUpdateTask() {
@@ -148,7 +148,7 @@ func (pd *PressureDecelerator) RunUpdateTask() {
 						continue
 					}
 					item := value.(*PressureDeceleratorItem)
-					atomic.StoreInt64(&item.sleeptime, res[key])
+					atomic.StoreInt32(&item.sleeptime, res[key])
 				}
 			}
 		}()
@@ -174,7 +174,7 @@ func getCurrentTimestampMs() int64 {
 	return time.Now().UnixNano() / 1e6
 }
 
-func minInt64(a, b int64) int64 {
+func minInt32(a, b int32) int32 {
 	if a < b {
 		return a
 	}

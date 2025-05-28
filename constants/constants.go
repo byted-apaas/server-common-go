@@ -24,6 +24,8 @@ const (
 	EnvKMeshUDS         = "WITH_HTTP_MESH_EGRESS_UDS"
 	EnvKSocketAddr      = "SERVICE_MESH_HTTP_EGRESS_ADDR"
 	EnvKBizIDC          = "KBizIDC"
+
+	EnvKPressureSdkDomain = "KPressureSdkDomain" // 反压中心http域名
 )
 
 const (
