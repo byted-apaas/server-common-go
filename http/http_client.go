@@ -214,27 +214,11 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	if !c.skipPreIntercept && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) {
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
 		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
-			msg := struct {
-				Key       string `json:"key"`
-				SleepTime int64  `json:"sleeptime"`
-			}{}
-			msgBytes, _ := json.Marshal(msg)
-			formatLog := utils.FormatLog{
-				Level:         utils.LogLevelWarn,
-				EventID:       utils.GetExecuteIDFromCtx(ctx),
-				FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
-				LogID:         utils.GetLogIDFromCtx(ctx),
-				Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
-				Message:       string(msgBytes),
-				TenantID:      utils.GetTenantIDFromCtx(ctx),
-				TenantType:    utils.GetTenantTypeFromCtx(ctx),
-				Namespace:     utils.GetNamespaceFromCtx(ctx),
-				LogType:       constants.SpeedDownLogType,
-			}
-
+			formatLog := getSpeedDownLog(ctx, key, sleeptime)
 			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
 			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
-			fmt.Println(content)
+			fmt.Println(content) // 输出降速日志
+
 			fmt.Printf("[%s] pressure decelerate %d ms", key, sleeptime)
 			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 		}
@@ -539,4 +523,29 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(ctx con
 		}
 		return conn, nil
 	}
+}
+
+func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) utils.FormatLog {
+	msg := struct {
+		Key       string `json:"key"`
+		SleepTime int32  `json:"sleep_time"`
+	}{
+		Key: key, SleepTime: sleepTime,
+	}
+	msgBytes, _ := json.Marshal(msg)
+
+	formatLog := utils.FormatLog{
+		Level:         utils.LogLevelWarn,
+		EventID:       utils.GetExecuteIDFromCtx(ctx),
+		FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
+		LogID:         utils.GetLogIDFromCtx(ctx),
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		Message:       string(msgBytes),
+		TenantID:      utils.GetTenantIDFromCtx(ctx),
+		TenantType:    utils.GetTenantTypeFromCtx(ctx),
+		Namespace:     utils.GetNamespaceFromCtx(ctx),
+		LogType:       constants.SpeedDownLogType,
+	}
+
+	return formatLog
 }
