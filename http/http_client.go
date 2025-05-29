@@ -38,7 +38,6 @@ type HttpClient struct {
 	MeshClient        *http.Client
 	FromSDK           version.ISDKInfo
 	rateLimitLogCount int64
-	skipPreIntercept  bool // 跳过前置拦截，rate limit & pressure decelerate
 }
 
 var (
