@@ -52,7 +52,8 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 		SignalList: keys,
 	}
 	path := strings.ReplaceAll(BatchQueryPressureSignalPath, constants.ReplaceNamespace, utils.GetNamespaceFromCtx(ctx))
-	body, _, err := GetPressureSdkClient().PostJson(ctx, path, nil, &req, AppTokenMiddleware, TenantAndUserMiddleware, ServiceIDMiddleware)
+	ctx = withPressureSdkReqTag(ctx)
+	body, _, err := GetOpenapiClient().PostJson(ctx, path, nil, &req, AppTokenMiddleware, TenantAndUserMiddleware, ServiceIDMiddleware)
 	if err != nil {
 		fmt.Printf("BatchQueryPressureSignal PostJson error : %+v", err)
 		return nil, err
@@ -62,6 +63,19 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 		return nil, err
 	}
 	return resp.PressureSignalMap, nil
+}
+
+// 带上反压中心请求tag，防止死循环
+func withPressureSdkReqTag(ctx context.Context) context.Context {
+	return context.WithValue(ctx, constants.CtxKeyPressureReqTag, true)
+}
+
+func checkPressureSdkReqTag(ctx context.Context) bool {
+	val := ctx.Value(constants.CtxKeyPressureReqTag)
+	if val == nil {
+		return false
+	}
+	return true
 }
 
 type MockPressureHttpClient struct{}

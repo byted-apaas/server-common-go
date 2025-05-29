@@ -21,7 +21,7 @@ const (
 	DefaultPressureMaxSleeptime   int64 = 1000          // 1s
 	DefaultPressureUpdateInterval int64 = 5000          // 5s
 	DefaultPressureMaxKeyCapacity int   = 1000          // 默认1000个
-	DefaultPressureEvictThreshold int64 = 2 * 60 * 1000 // 2min
+	DefaultPressureEvictThreshold int64 = 1 * 60 * 1000 // 1min
 )
 
 var (

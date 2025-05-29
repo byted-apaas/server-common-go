@@ -39,4 +39,5 @@ const (
 	CtxKeyEnvType          = "KUNLUN_ENV_TYPE"
 	CtxKeySDKConf          = "x-apaas-sdk-conf"
 	CtxKeyRuntimeType      = "KRuntimeType"
+	CtxKeyPressureReqTag   = "__PressureReqTag__"
 )
