@@ -30,7 +30,6 @@ type ClientType int
 const (
 	OpenAPIClient ClientType = iota + 1
 	FaaSInfraClient
-	PressureSdkClient
 )
 
 type HttpClient struct {
@@ -129,7 +128,7 @@ func GetFaaSInfraClient(ctx context.Context) *HttpClient {
 func GetPressureSdkClient() *HttpClient {
 	pressureSdkClientOnce.Do(func() {
 		pressureSdkClient = &HttpClient{
-			Type: PressureSdkClient,
+			Type: OpenAPIClient,
 			Client: http.Client{
 				Transport: &http.Transport{
 					DialContext:         TimeoutDialer(constants.HttpClientDialTimeoutDefault, 0),
@@ -168,8 +167,6 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 		return utils.GetOpenAPIDomain(ctx)
 	case FaaSInfraClient:
 		return utils.GetFaaSInfraDomain(ctx)
-	case PressureSdkClient:
-		return utils.GetPressureSdkDomain(ctx)
 	default:
 		return ""
 	}
@@ -218,8 +215,6 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
 			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
 			fmt.Println(content) // 输出降速日志
-
-			fmt.Printf("[%s] pressure decelerate %d ms", key, sleeptime)
 			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 		}
 	}
@@ -475,7 +470,6 @@ func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) c
 	case FaaSInfraClient:
 		req.Header.Add(constants.HttpHeaderKeyOrgID, utils.GetEnvOrgID())
 		req.Header.Add(constants.PersistFaaSKeySummarized, utils.GetAPaaSPersistFaaSMapStr(ctx))
-	case PressureSdkClient:
 	}
 
 	return utils.SetKEnvToCtxForRPC(ctx)

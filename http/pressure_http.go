@@ -3,13 +3,14 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"strings"
 
+	"github.com/byted-apaas/server-common-go/constants"
 	"github.com/byted-apaas/server-common-go/utils"
 )
 
 const (
-	BatchQueryPressureSignalPath = "/batch_query"
+	BatchQueryPressureSignalPath = "/arch_service/v1/namespaces/:namespace/arch_service/pressure/batch_query"
 )
 
 // IPressureHttpClient 反压中心 http client
@@ -38,34 +39,25 @@ func (c *PressureHttpClient) GetSleeptime(ctx context.Context, key string) (int3
 }
 
 type BatchQueryPressureSignalReq struct {
-	SignalList []string `json:"signalList"`
-	TenantId   int64    `json:"TenantId"`
-	Namespace  string   `json:"Namespace"`
+	SignalList []string `json:"signal_list"`
 }
 
 type BatchQueryPressureSignalResp struct {
-	PressureSignalMap map[string]int32 `json:"PressureSignalMap"`
+	PressureSignalMap map[string]int32 `json:"pressure_signal_map"`
 }
 
 func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []string) (map[string]int32, error) {
-	tenant, err := utils.GetTenantFromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if tenant == nil { // 兜底
-		return nil, errors.New("get tenant info from ctx is nil")
-	}
 	req := &BatchQueryPressureSignalReq{
 		SignalList: keys,
-		TenantId:   tenant.ID,
-		Namespace:  tenant.Namespace,
 	}
-	respByte, _, err := GetPressureSdkClient().PostJson(ctx, BatchQueryPressureSignalPath, nil, &req)
+	path := strings.ReplaceAll(BatchQueryPressureSignalPath, constants.ReplaceNamespace, utils.GetNamespaceFromCtx(ctx))
+	body, _, err := GetPressureSdkClient().PostJson(ctx, path, nil, &req, AppTokenMiddleware, TenantAndUserMiddleware, ServiceIDMiddleware)
 	if err != nil {
+
 		return nil, err
 	}
 	var resp BatchQueryPressureSignalResp
-	if err = json.Unmarshal(respByte, &resp); err != nil {
+	if err = json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
 	return resp.PressureSignalMap, nil
