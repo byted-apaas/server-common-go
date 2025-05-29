@@ -137,6 +137,7 @@ func GetPressureSdkClient() *HttpClient {
 					MaxIdleConnsPerHost: 10,
 					IdleConnTimeout:     60 * time.Second,
 				},
+				Timeout: 4 * time.Second,
 			},
 			skipPreIntercept: true,
 		}
@@ -288,8 +289,16 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			newReq.Header.Set("destination-service", psm)
 			newReq.Header.Set("destination-cluster", cluster)
 			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
+			if utils.GetIfPrintRequestCurl() { // for debug
+				curl, _ := utils.RequestToCurl(c.MeshClient, newReq)
+				fmt.Println("request curl : ", curl)
+			}
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
+			if utils.GetIfPrintRequestCurl() { // for debug
+				curl, _ := utils.RequestToCurl(&c.Client, req)
+				fmt.Println("request curl : ", curl)
+			}
 			// 走 dns
 			resp, err = c.Do(req.WithContext(ctx))
 		}

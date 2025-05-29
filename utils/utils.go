@@ -4,10 +4,15 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 
@@ -365,4 +370,103 @@ func IsTrueString(str string) bool {
 
 func IsExternalFaaS() bool {
 	return GetFaaSPlatform() != "3"
+}
+
+// RequestToCurl 将http.Client和*http.Request转换为等效的curl命令字符串，同时不影响原请求
+func RequestToCurl(client *http.Client, req *http.Request) (string, error) {
+	var cmd []string
+	cmd = append(cmd, "curl")
+
+	// 添加verbose选项
+	if client != nil && client.Transport != nil {
+		cmd = append(cmd, "-v")
+	}
+
+	// 添加请求方法
+	method := req.Method
+	if method == "" {
+		method = http.MethodGet
+	}
+	cmd = append(cmd, fmt.Sprintf("-X %s", method))
+
+	// 添加请求头
+	for key, values := range req.Header {
+		for _, value := range values {
+			escapedValue := strings.ReplaceAll(value, `"`, `\"`)
+			cmd = append(cmd, fmt.Sprintf("-H \"%s: %s\"", key, escapedValue))
+		}
+	}
+
+	// 处理请求体，确保不影响原请求
+	var bodyBytes []byte
+	var err error
+
+	// 如果请求体存在且可以读取
+	if req.Body != nil {
+		// 克隆请求体
+		bodyBytes, err = cloneRequestBody(req)
+		if err != nil {
+			return "", fmt.Errorf("克隆请求体失败: %v", err)
+		}
+
+		if len(bodyBytes) > 0 {
+			contentType := req.Header.Get("Content-Type")
+
+			if strings.Contains(contentType, "application/json") {
+				escapedBody := strings.ReplaceAll(string(bodyBytes), `"`, `\"`)
+				cmd = append(cmd, fmt.Sprintf("-d \"%s\"", escapedBody))
+			} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+				formData, err := url.ParseQuery(string(bodyBytes))
+				if err == nil {
+					for key, values := range formData {
+						for _, value := range values {
+							cmd = append(cmd, fmt.Sprintf("-d \"%s=%s\"", key, url.QueryEscape(value)))
+						}
+					}
+				} else {
+					escapedBody := strings.ReplaceAll(string(bodyBytes), `"`, `\"`)
+					cmd = append(cmd, fmt.Sprintf("-d \"%s\"", escapedBody))
+				}
+			} else {
+				escapedBody := strings.ReplaceAll(string(bodyBytes), `"`, `\"`)
+				cmd = append(cmd, fmt.Sprintf("-d \"%s\"", escapedBody))
+			}
+		}
+	}
+
+	// 添加请求URL
+	escapedURL := req.URL.String()
+	if strings.ContainsAny(escapedURL, " \"'") {
+		escapedURL = fmt.Sprintf("'%s'", escapedURL)
+	}
+	cmd = append(cmd, escapedURL)
+
+	// 添加超时设置
+	if client != nil && client.Timeout > 0 {
+		timeoutSeconds := int(client.Timeout / time.Second)
+		if timeoutSeconds == 0 {
+			timeoutSeconds = 1
+		}
+		cmd = append(cmd, fmt.Sprintf("--max-time %d", timeoutSeconds))
+	}
+
+	return strings.Join(cmd, " "), nil
+}
+
+// cloneRequestBody 克隆请求体，不影响原请求
+func cloneRequestBody(req *http.Request) ([]byte, error) {
+	if req.Body == nil {
+		return nil, nil
+	}
+
+	// 读取原始请求体
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 恢复原始请求体
+	req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	return bodyBytes, nil
 }

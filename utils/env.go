@@ -42,3 +42,7 @@ func GetLGWPSMFromEnv() string {
 func GetLGWClusterFromEnv() string {
 	return os.Getenv(constants.EnvKLGWCluster)
 }
+
+func GetIfPrintRequestCurl() bool {
+	return os.Getenv(constants.EnvPrintRequest) == "true"
+}

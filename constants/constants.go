@@ -24,6 +24,7 @@ const (
 	EnvKMeshUDS         = "WITH_HTTP_MESH_EGRESS_UDS"
 	EnvKSocketAddr      = "SERVICE_MESH_HTTP_EGRESS_ADDR"
 	EnvKBizIDC          = "KBizIDC"
+	EnvPrintRequest     = "PRINT_REQUEST_CURL" // for debug
 )
 
 const (

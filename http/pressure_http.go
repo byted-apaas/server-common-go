@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	BatchQueryPressureSignalPath = "/arch_service/v1/namespaces/:namespace/arch_service/pressure/batch_query"
+	BatchQueryPressureSignalPath = "/v1/namespaces/:namespace/arch_service/pressure/batch_query"
 )
 
 // IPressureHttpClient 反压中心 http client
@@ -53,7 +54,7 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 	path := strings.ReplaceAll(BatchQueryPressureSignalPath, constants.ReplaceNamespace, utils.GetNamespaceFromCtx(ctx))
 	body, _, err := GetPressureSdkClient().PostJson(ctx, path, nil, &req, AppTokenMiddleware, TenantAndUserMiddleware, ServiceIDMiddleware)
 	if err != nil {
-
+		fmt.Printf("BatchQueryPressureSignal PostJson error : %+v", err)
 		return nil, err
 	}
 	var resp BatchQueryPressureSignalResp
