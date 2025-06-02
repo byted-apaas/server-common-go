@@ -48,7 +48,7 @@ type BatchQueryPressureSignalResp struct {
 }
 
 func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []string) (map[string]int32, error) {
-	req := &BatchQueryPressureSignalReq{
+	req := BatchQueryPressureSignalReq{
 		SignalList: keys,
 	}
 	path := strings.ReplaceAll(BatchQueryPressureSignalPath, constants.ReplaceNamespace, utils.GetNamespaceFromCtx(ctx))
