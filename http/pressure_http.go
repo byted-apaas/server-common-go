@@ -44,10 +44,13 @@ type BatchQueryPressureSignalReq struct {
 }
 
 type BatchQueryPressureSignalResp struct {
-	PressureSignalMap map[string]int32 `json:"pressure_signal_map"`
+	Data struct {
+		PressureSignalMap map[string]int32 `json:"pressure_signal_map"`
+	} `json:"data"`
 }
 
 func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []string) (map[string]int32, error) {
+	fmt.Printf("[pressure decelerator] keys: %+v\n", keys)
 	req := BatchQueryPressureSignalReq{
 		SignalList: keys,
 	}
@@ -62,8 +65,8 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 	if err = json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
-	fmt.Printf("BatchQueryPressureSignal resp.PressureSignalMap : %+v\n", resp.PressureSignalMap)
-	return resp.PressureSignalMap, nil
+	fmt.Printf("BatchQueryPressureSignal resp.PressureSignalMap : %+v\n", resp.Data.PressureSignalMap)
+	return resp.Data.PressureSignalMap, nil
 }
 
 // 带上反压中心请求tag，防止死循环
