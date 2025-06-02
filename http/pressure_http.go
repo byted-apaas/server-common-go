@@ -62,6 +62,7 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 	if err = json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
+	fmt.Printf("BatchQueryPressureSignal resp.PressureSignalMap : %+v\n", resp.PressureSignalMap)
 	return resp.PressureSignalMap, nil
 }
 

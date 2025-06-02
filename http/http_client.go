@@ -170,7 +170,9 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	// pressureDecelerator 需要在 webframe 请求进入前调用 InitPressureDecelerator 方法进行初始化，否则无法降速
 	if !checkPressureSdkReqTag(ctx) && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) {
 		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
-		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
+		sleeptime := pressureDecelerator.GetSleeptime(key)
+		fmt.Printf("[pressure decelerator] key %s sleeptime: %d\n", key, sleeptime)
+		if sleeptime > 0 {
 			formatLog := getSpeedDownLog(ctx, key, sleeptime)
 			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
 			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
