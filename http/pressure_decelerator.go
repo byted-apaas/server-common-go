@@ -112,7 +112,6 @@ func (pd *PressureDecelerator) RunUpdateTask() {
 			if atomic.CompareAndSwapInt32(&pd.updating, 0, 1) { // 定时器更新任务间互斥
 				defer atomic.StoreInt32(&pd.updating, 0) // 解锁
 				now := getCurrentTimestampMs()
-				fmt.Printf("PressureDecelerator ticker update task started at %v\n", now)
 				updateKeys := make([]string, 0, atomic.LoadInt64(&pd.size)+20) // 多设置20个预留，可能中途有新增的
 				sortKeys := make(map[string]int64, atomic.LoadInt64(&pd.size))
 				evictKeys := make([]string, 0, atomic.LoadInt64(&pd.size)) // 还是记录淘汰key列表，使用updateKeys取反会把中途新增的新key也淘汰掉
@@ -144,11 +143,15 @@ func (pd *PressureDecelerator) RunUpdateTask() {
 				}
 				for _, key := range updateKeys {
 					value, ok := pd.cache.Load(key)
-					if !ok {
+					if !ok || value == nil {
 						continue
 					}
 					item := value.(*PressureDeceleratorItem)
-					atomic.StoreInt32(&item.sleeptime, res[key])
+					if maxSleeptime := pd.getConfig().MaxSleeptime; maxSleeptime > 0 {
+						atomic.StoreInt32(&item.sleeptime, minInt32(res[key], int32(maxSleeptime)))
+					} else {
+						atomic.StoreInt32(&item.sleeptime, res[key])
+					}
 				}
 			}
 		}()

@@ -47,7 +47,7 @@ pkg: github.com/byted-apaas/server-common-go/http
 BenchmarkPressureDecelerator
 PressureDecelerator ticker update task started at 1748921442889
 PressureDecelerator ticker update task started at 1748921443389
-BenchmarkPressureDecelerator-10    	18000460	        60.92 ns/op
+BenchmarkPressureDecelerator-10    	19787380	        58.91 ns/op
 PASS
 */
 func BenchmarkPressureDecelerator(b *testing.B) {
