@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/buger/jsonparser"
+
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
 	"github.com/byted-apaas/server-common-go/structs"
@@ -183,6 +185,34 @@ func SetPodRateLimitDowngradeToCtx(ctx context.Context, switchOn bool) context.C
 func GetPodRateLimitDowngradeFromCtx(ctx context.Context) bool {
 	cast, _ := ctx.Value(constants.PodRateLimitDowngradeHeader).(bool)
 	return cast
+}
+
+// SetPressureNeedDecelerateToCtx 设置是否需要降速
+func SetPressureNeedDecelerateToCtx(ctx context.Context, needDecelerate bool) context.Context {
+	return context.WithValue(ctx, constants.PressureNeedDecelerateHeader, needDecelerate)
+}
+
+// GetPressureNeedDecelerateFromCtx 获取是否需要降速
+func GetPressureNeedDecelerateFromCtx(ctx context.Context) bool {
+	value := ctx.Value(constants.PressureNeedDecelerateHeader)
+	if value == nil { // key不存在则默认为false
+		return false
+	}
+	return value.(bool)
+}
+
+// SetPressureConfigToCtx 设置反压中心降速配置
+func SetPressureConfigToCtx(ctx context.Context, pressureConfig string) context.Context {
+	return context.WithValue(ctx, constants.PressureConfigHeader, pressureConfig)
+}
+
+// GetPressureConfigFromCtx 获取反压中心降速配置
+func GetPressureConfigFromCtx(ctx context.Context) string {
+	value := ctx.Value(constants.PressureConfigHeader)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
 }
 
 func GetFunctionAPIIDFromCtx(ctx context.Context) string {
@@ -700,4 +730,22 @@ func IsRuntime(ctx context.Context) bool {
 	}
 
 	return GetRuntimeType(ctx) == RuntimeTypeRuntime
+}
+
+// GetAPaaSPersistFaaSPressureSignalId 获取request_source中的压力信号id
+func GetAPaaSPersistFaaSPressureSignalId(ctx context.Context) string {
+
+	reqSrc := GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyRequestSource)
+	if reqSrc == "" {
+		fmt.Println("GetAPaaSPersistFaaSValueFromCtx request_source is empty")
+		return ""
+	}
+
+	value, err := jsonparser.GetString([]byte(reqSrc), constants.RequestSourcePressureSignalId)
+	if err != nil { // maybe key not exist
+		fmt.Println("GetAPaaSPersistFaaSPressureSignalId jsonparser get key error: ", err.Error())
+		return ""
+	}
+
+	return value
 }

@@ -6,6 +6,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -138,7 +139,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		fmt.Println(fmt.Sprintf("%s rate limit reset from %d to %d, apiID: %s, tenantID: %d, namespace: %s", utils.GetFormatDate(), oldQuota, quota, utils.GetFuncAPINameFromCtx(ctx), utils.GetTenantIDFromCtx(ctx), utils.GetNamespaceFromCtx(ctx)))
 	}
 
-	if !limiter.AllowRequest() {
+	if !checkPressureSdkReqTag(ctx) && !limiter.AllowRequest() {
 		format := "request limit exceeded quota: %d qps"
 		formatLog := utils.FormatLog{
 			Level:         utils.LogLevelWarn,
@@ -164,6 +165,19 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			return nil, nil, fmt.Errorf("request limit exceeded quota: %d qps", quota)
 		}
 		// 触发限流，降级通过
+	}
+
+	// pressureDecelerator 需要在 webframe 请求进入前调用 InitPressureDecelerator 方法进行初始化，否则无法降速
+	if !checkPressureSdkReqTag(ctx) && pressureDecelerator != nil && utils.GetPressureNeedDecelerateFromCtx(ctx) {
+		key := utils.GetAPaaSPersistFaaSPressureSignalId(ctx)
+		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
+			fmt.Printf("[pressure decelerator] key %s sleeptime: %d ms\n", key, sleeptime)
+			formatLog := getSpeedDownLog(ctx, key, sleeptime)
+			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
+			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
+			fmt.Println(content) // 输出降速日志
+			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
+		}
 	}
 
 	extra := map[string]interface{}{}
@@ -235,8 +249,16 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 			newReq.Header.Set("destination-service", psm)
 			newReq.Header.Set("destination-cluster", cluster)
 			newReq.Header.Set("destination-request-timeout", strconv.FormatInt(utils.GetMeshDestReqTimeout(ctx), 10))
+			if utils.GetIfPrintRequestCurl() { // for debug
+				curl, _ := utils.RequestToCurl(c.MeshClient, newReq)
+				fmt.Println("request curl : ", curl)
+			}
 			resp, err = c.MeshClient.Do(newReq.WithContext(ctx))
 		} else {
+			if utils.GetIfPrintRequestCurl() { // for debug
+				curl, _ := utils.RequestToCurl(&c.Client, req)
+				fmt.Println("request curl : ", curl)
+			}
 			// 走 dns
 			resp, err = c.Do(req.WithContext(ctx))
 		}
@@ -464,4 +486,29 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(ctx con
 		}
 		return conn, nil
 	}
+}
+
+func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) utils.FormatLog {
+	msg := struct {
+		Key       string `json:"key"`
+		SleepTime int32  `json:"sleep_time"`
+	}{
+		Key: key, SleepTime: sleepTime,
+	}
+	msgBytes, _ := json.Marshal(msg)
+
+	formatLog := utils.FormatLog{
+		Level:         utils.LogLevelWarn,
+		EventID:       utils.GetExecuteIDFromCtx(ctx),
+		FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
+		LogID:         utils.GetLogIDFromCtx(ctx),
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		Message:       string(msgBytes),
+		TenantID:      utils.GetTenantIDFromCtx(ctx),
+		TenantType:    utils.GetTenantTypeFromCtx(ctx),
+		Namespace:     utils.GetNamespaceFromCtx(ctx),
+		LogType:       constants.SpeedDownLogType,
+	}
+
+	return formatLog
 }

@@ -24,6 +24,7 @@ const (
 	EnvKMeshUDS         = "WITH_HTTP_MESH_EGRESS_UDS"
 	EnvKSocketAddr      = "SERVICE_MESH_HTTP_EGRESS_ADDR"
 	EnvKBizIDC          = "KBizIDC"
+	EnvPrintRequest     = "PRINT_REQUEST_CURL" // for debug
 )
 
 const (
@@ -68,6 +69,9 @@ const (
 	HTTPHeaderEnvoyRespFlag     = "x-envoy-response-flags"
 	PodRateLimitQuotaHeader     = "x-serverless-sdk-pod-rate-limit-quota"
 	PodRateLimitDowngradeHeader = "x-serverless-sdk-pod-rate-limit-downgrade"
+
+	PressureNeedDecelerateHeader = "x-serverless-sdk-pressure-need-decelerate" // 反压中心是否需要降速，由CloudFunction下发该开关
+	PressureConfigHeader         = "x-serverless-sdk-pressure-config"          // 反压中心相关配置，由CloudFunction下发该配置
 )
 
 const (
@@ -98,6 +102,15 @@ const (
 
 	PersistFaaSKeyFromSDKName    = "x-apaas-persist-faas-from-sdk-name"
 	PersistFaaSKeyFromSDKVersion = "x-apaas-persist-faas-from-sdk-version"
+
+	// PersistFaaSKeyRequestSource 溯源流量key
+	PersistFaaSKeyRequestSource = APAAS_PERSIST_FAAS_PREFIX + "request-source"
+
+	// RequestSourcePressureSignalId  RequestSource 中的 PressureSignalId，用于反压中心识别异步链路
+	RequestSourcePressureSignalId = "pressureSignalId"
+
+	// RequestSourceIsAsync  RequestSource 中的 IsAsync，用于反压中心标识是否异步链路
+	RequestSourceIsAsync = "isAsync"
 )
 
 const (
@@ -119,5 +132,6 @@ const (
 	APaaSLogPrefix   = "apaas-log-prefix"
 	APaaSLogSuffix   = "apaas-log-suffix"
 	UserLogType      = "user"
-	RateLimitLogType = "rate_limit"
+	RateLimitLogType = "rate_limit" // SDK 限流
+	SpeedDownLogType = "speed_down" // SDK 降速
 )
