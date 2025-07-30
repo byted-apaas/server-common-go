@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -401,10 +402,10 @@ func (c *HttpClient) DeleteJson(ctx context.Context, path string, headers map[st
 func (c *HttpClient) requestCommonInfo(ctx context.Context, req *http.Request) context.Context {
 	// common: ppe or boe
 	env := utils.GetTTEnvFromCtx(ctx)
-	if strings.HasPrefix(env, "ppe_") {
+	if strings.HasPrefix(env, "ppe_") && !isBoe() {
 		req.Header.Add(constants.HttpHeaderKeyUsePPE, "1")
 		req.Header.Add(constants.HttpHeaderKeyEnv, env)
-	} else if strings.HasPrefix(env, "boe_") {
+	} else if strings.HasPrefix(env, "boe_") && isBoe() {
 		req.Header.Add(constants.HttpHeaderKeyUseBOE, "1")
 		req.Header.Add(constants.HttpHeaderKeyEnv, env)
 	}
@@ -511,4 +512,9 @@ func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) utils.For
 	}
 
 	return formatLog
+}
+
+func isBoe() bool {
+	fmt.Println(fmt.Sprintf("[isBoe]: %v", os.Getenv("ENV")))
+	return os.Getenv("ENV") == "staging" // online ENV: 'gray', 'online'
 }
