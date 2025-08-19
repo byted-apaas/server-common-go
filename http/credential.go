@@ -71,6 +71,7 @@ func (c *AppCredential) GetTenantInfo(ctx context.Context) (*structs.Tenant, err
 	if ok {
 		return tenant, nil
 	}
+	ctx = withPressureSdkReqTag(ctx)
 	_, tenantInfo, err := c.refresh(ctx)
 	return tenantInfo, err
 }
