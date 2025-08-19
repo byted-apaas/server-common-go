@@ -5,6 +5,8 @@ package http
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"net/http"
 
 	"github.com/byted-apaas/server-common-go/constants"
@@ -14,6 +16,7 @@ import (
 type ReqMiddleWare func(ctx context.Context, req *http.Request) error
 
 func AppTokenMiddleware(ctx context.Context, req *http.Request) (err error) {
+	fmt.Println("enter AppTokenMiddleware ctx isWithPressureSdkReqTag :", checkPressureSdkReqTag(ctx))
 	if req == nil || req.Header == nil {
 		return nil
 	}
@@ -26,7 +29,10 @@ func AppTokenMiddleware(ctx context.Context, req *http.Request) (err error) {
 		}
 	}
 
+	tag := rand.Int31()
+	fmt.Println("AppTokenMiddleware before getToken :", tag)
 	token, err := credential.getToken(ctx)
+	fmt.Println("AppTokenMiddleware after getToken :", tag)
 	if err != nil {
 		return err
 	}

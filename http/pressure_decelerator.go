@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -84,13 +85,14 @@ func (pd *PressureDecelerator) GetSleeptime(key string) int32 {
 	}
 
 	item := value.(*PressureDeceleratorItem)
-	fmt.Println("GetSleeptime start key: ", key) // 2
+	tag := rand.Int31()
+	fmt.Println("GetSleeptime start key: ", key, ", tag: ", tag) // 2
 	item.first.Do(func() {
-		fmt.Println("GetSleeptime inner start key: ", key) // 1
+		fmt.Println("GetSleeptime inner start key: ", key, ", tag: ", tag) // 1
 		pd.updateOne(item)
-		fmt.Println("GetSleeptime inner end key: ", key) // 0
+		fmt.Println("GetSleeptime inner end key: ", key, ", tag: ", tag) // 0
 	})
-	fmt.Println("GetSleeptime end key: ", key) // 0
+	fmt.Println("GetSleeptime end key: ", key, ", tag: ", tag) // 0
 	atomic.StoreInt64(&item.lastReqTime, getCurrentTimestampMs())
 
 	return atomic.LoadInt32(&item.sleeptime)
