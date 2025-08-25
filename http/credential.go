@@ -71,6 +71,8 @@ func (c *AppCredential) GetTenantInfo(ctx context.Context) (*structs.Tenant, err
 	if ok {
 		return tenant, nil
 	}
+	// fix: 修复进程启动后第一个请求为GetTenantInfo且触发反压时的死锁问题
+	ctx = withPressureSdkReqTag(ctx) // 添加反压标识，防止refresh.lock死锁
 	_, tenantInfo, err := c.refresh(ctx)
 	return tenantInfo, err
 }
