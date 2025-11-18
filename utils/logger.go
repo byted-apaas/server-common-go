@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"context"
+	"strings"
 	"time"
+
+	"github.com/byted-apaas/server-common-go/constants"
 )
 
 const (
@@ -28,22 +32,45 @@ type FormatLog struct {
 	LogType       string `json:"log_type"`        // 日志类型
 }
 
+func NewFormatLog(ctx context.Context, level int, logType, message string) *FormatLog {
+	return &FormatLog{
+		Level:         level,
+		EventID:       GetExecuteIDFromCtx(ctx),
+		FunctionAPIID: GetFunctionAPIIDFromCtx(ctx),
+		LogID:         GetLogIDFromCtx(ctx),
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		TenantID:      GetTenantIDFromCtx(ctx),
+		TenantType:    GetTenantTypeFromCtx(ctx),
+		Namespace:     GetNamespaceFromCtx(ctx),
+		LogType:       logType,
+		Message:       message,
+	}
+}
+
+func (l *FormatLog) String() string {
+	if len(l.Message) > LogLengthLimit {
+		l.Message = l.Message[:LogLengthLimit] + LogLengthLimitTip
+	}
+
+	jsonContent, err := JsonMarshalBytes(l)
+	if err != nil {
+		GetConsoleLogger(l.LogID).Errorf("[Logger] FormatLog String failed, err: %v", err)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(GetFormatDate()) // 防止日志粘连
+	sb.WriteString(constants.APaaSLogPrefix)
+	sb.WriteString(string(jsonContent))
+	sb.WriteString(constants.APaaSLogSuffix)
+
+	return sb.String()
+}
+
 func GetFormatDate() string {
 	return time.Now().Format("2006-01-02")
 }
 
-func GetFormatLogWithMessage(formatLog FormatLog, streamLogCount int64) string {
-	if len(formatLog.Message) > LogLengthLimit {
-		formatLog.Message = formatLog.Message[:LogLengthLimit] + LogLengthLimitTip
-	}
-	if streamLogCount == LogCountLimit {
-		formatLog.Message = formatLog.Message + LogCountLimitTip
-	}
-
-	jsonContent, err := JsonMarshalBytes(formatLog)
-	if err != nil {
-		GetConsoleLogger(formatLog.LogID).Errorf("[Logger] getFormatLog failed, err: %v", err)
-	}
-
-	return string(jsonContent)
+type SpeedDownMessage struct {
+	Key       string `json:"key"`
+	SleepTime int32  `json:"sleep_time"` // 降速时间，单位：毫秒
 }

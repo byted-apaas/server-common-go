@@ -138,11 +138,7 @@ func (l *Logger) Infof(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.infoNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelInfo, NormalLog)
-		if l.streamLogCount < utils.LogCountLimit {
-			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelInfo, format, args...), constants.APaaSLogSuffix)
-			fmt.Println(content)
-		}
+		l.streamLog(utils.LogLevelInfo, format, args...)
 	} else {
 		utils.GetConsoleLogger().Infof(format, args...)
 	}
@@ -152,11 +148,7 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.warnNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelWarn, NormalLog)
-		if l.streamLogCount < utils.LogCountLimit {
-			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelWarn, format, args...), constants.APaaSLogSuffix)
-			fmt.Println(content)
-		}
+		l.streamLog(utils.LogLevelWarn, format, args...)
 	} else {
 		utils.GetConsoleLogger().Warnf(format, args...)
 	}
@@ -166,18 +158,20 @@ func (l *Logger) Errorf(format string, args ...interface{}) {
 	if !l.isDebug {
 		atomic.AddInt64(&l.errorNum, 1)
 		l.addLog(fmt.Sprintf(format, args...), utils.LogLevelError, NormalLog)
-		if l.streamLogCount < utils.LogCountLimit {
-			l.streamLogCount++
-			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, l.getFormatLog(utils.LogLevelError, format, args...), constants.APaaSLogSuffix)
-			fmt.Println(content)
-		}
+		l.streamLog(utils.LogLevelError, format, args...)
 	} else {
 		utils.GetConsoleLogger().Errorf(format, args...)
 	}
 }
 
-func (l *Logger) getFormatLog(level int, format string, args ...interface{}) string {
-	formatLog := utils.FormatLog{
+func (l *Logger) streamLog(level int, format string, args ...interface{}) {
+	if l.streamLogCount > utils.LogCountLimit {
+		return
+	}
+
+	l.streamLogCount++
+
+	userLog := &utils.FormatLog{
 		Level:         level,
 		EventID:       l.executeID,
 		FunctionAPIID: l.functionAPIID,
@@ -189,7 +183,14 @@ func (l *Logger) getFormatLog(level int, format string, args ...interface{}) str
 		Namespace:     l.namespace,
 		LogType:       constants.UserLogType,
 	}
-	return utils.GetFormatLogWithMessage(formatLog, l.streamLogCount)
+
+	if l.streamLogCount == utils.LogCountLimit {
+		userLog.Message = utils.LogCountLimitTip
+	}
+
+	fmt.Println(userLog.String())
+
+	return
 }
 
 func Send(ctx context.Context, l *Logger) {
