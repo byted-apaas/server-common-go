@@ -140,25 +140,11 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 	}
 
 	if !checkPressureSdkReqTag(ctx) && !limiter.AllowRequest() {
-		format := "request limit exceeded quota: %d qps"
-		formatLog := utils.FormatLog{
-			Level:         utils.LogLevelWarn,
-			EventID:       utils.GetExecuteIDFromCtx(ctx),
-			FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
-			LogID:         utils.GetLogIDFromCtx(ctx),
-			Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
-			Message:       fmt.Sprintf(format, quota),
-			TenantID:      utils.GetTenantIDFromCtx(ctx),
-			TenantType:    utils.GetTenantTypeFromCtx(ctx),
-			Namespace:     utils.GetNamespaceFromCtx(ctx),
-			LogType:       constants.RateLimitLogType,
-		}
-
+		rateLimitMsg := fmt.Sprintf("request limit exceeded quota: %d qps", quota)
+		rateLimitLog := utils.NewFormatLog(ctx, utils.LogLevelWarn, constants.RateLimitLogType, rateLimitMsg)
 		if c.rateLimitLogCount < utils.LogCountLimit {
 			c.rateLimitLogCount++
-			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
-			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
-			fmt.Println(content)
+			fmt.Println(rateLimitLog.String())
 		}
 		// 触发限流，禁止访问
 		if downgrade := utils.GetPodRateLimitDowngradeFromCtx(ctx); !downgrade {
@@ -173,18 +159,12 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		if sleeptime := pressureDecelerator.GetSleeptime(key); sleeptime > 0 {
 			fmt.Printf("[pressure decelerator] key %s sleeptime: %d ms\n", key, sleeptime)
 			formatLog := getSpeedDownLog(ctx, key, sleeptime)
-			fmtMessage := utils.GetFormatLogWithMessage(formatLog, c.rateLimitLogCount)
-			content := fmt.Sprintf("%s %s %s %s", utils.GetFormatDate(), constants.APaaSLogPrefix, fmtMessage, constants.APaaSLogSuffix)
-			fmt.Println(content) // 输出降速日志
+			fmt.Println(formatLog.String()) // 输出降速日志
 			time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 		}
 	}
 
 	extra := map[string]interface{}{}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
 
 	for _, mid := range midList {
 		err := mid(ctx, req)
@@ -488,7 +468,7 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(ctx con
 	}
 }
 
-func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) utils.FormatLog {
+func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) *utils.FormatLog {
 	msg := struct {
 		Key       string `json:"key"`
 		SleepTime int32  `json:"sleep_time"`
@@ -497,18 +477,7 @@ func getSpeedDownLog(ctx context.Context, key string, sleepTime int32) utils.For
 	}
 	msgBytes, _ := json.Marshal(msg)
 
-	formatLog := utils.FormatLog{
-		Level:         utils.LogLevelWarn,
-		EventID:       utils.GetExecuteIDFromCtx(ctx),
-		FunctionAPIID: utils.GetFunctionAPIIDFromCtx(ctx),
-		LogID:         utils.GetLogIDFromCtx(ctx),
-		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
-		Message:       string(msgBytes),
-		TenantID:      utils.GetTenantIDFromCtx(ctx),
-		TenantType:    utils.GetTenantTypeFromCtx(ctx),
-		Namespace:     utils.GetNamespaceFromCtx(ctx),
-		LogType:       constants.SpeedDownLogType,
-	}
+	formatLog := utils.NewFormatLog(ctx, utils.LogLevelWarn, constants.SpeedDownLogType, string(msgBytes))
 
 	return formatLog
 }

@@ -29,6 +29,7 @@ func (l *RateLimiter) ResetRateLimiter(maxRequest int) bool {
 	}
 
 	l.maxRequest = maxRequest
+
 	return true
 }
 
