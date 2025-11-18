@@ -39,11 +39,11 @@ func NewFormatLog(ctx context.Context, level int, logType, message string) *Form
 		FunctionAPIID: GetFunctionAPIIDFromCtx(ctx),
 		LogID:         GetLogIDFromCtx(ctx),
 		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
-		Message:       message,
 		TenantID:      GetTenantIDFromCtx(ctx),
 		TenantType:    GetTenantTypeFromCtx(ctx),
 		Namespace:     GetNamespaceFromCtx(ctx),
 		LogType:       logType,
+		Message:       message,
 	}
 }
 
@@ -68,4 +68,9 @@ func (l *FormatLog) String() string {
 
 func GetFormatDate() string {
 	return time.Now().Format("2006-01-02")
+}
+
+type SpeedDownMessage struct {
+	Key       string `json:"key"`
+	SleepTime int32  `json:"sleep_time"` // 降速时间，单位：毫秒
 }
