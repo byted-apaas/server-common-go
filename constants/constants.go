@@ -72,6 +72,9 @@ const (
 
 	PressureNeedDecelerateHeader = "x-serverless-sdk-pressure-need-decelerate" // 反压中心是否需要降速，由CloudFunction下发该开关
 	PressureConfigHeader         = "x-serverless-sdk-pressure-config"          // 反压中心相关配置，由CloudFunction下发该配置
+
+	HeaderSDKCallLog       = "x-serverless-sdk-call-log"
+	HeaderSDKCallLogDetail = "x-serverless-sdk-call-log-detail"
 )
 
 const (
@@ -102,6 +105,8 @@ const (
 
 	PersistFaaSKeyFromSDKName    = "x-apaas-persist-faas-from-sdk-name"
 	PersistFaaSKeyFromSDKVersion = "x-apaas-persist-faas-from-sdk-version"
+
+	PersistFaaSKeyFuncLanguage = "x-apaas-persist-faas-func-language"
 
 	// PersistFaaSKeyRequestSource 溯源流量key
 	PersistFaaSKeyRequestSource = APAAS_PERSIST_FAAS_PREFIX + "request-source"
@@ -134,4 +139,5 @@ const (
 	UserLogType      = "user"
 	RateLimitLogType = "rate_limit" // SDK 限流
 	SpeedDownLogType = "speed_down" // SDK 降速
+	SDKCallLogType   = "sdk_call"   // SDK 请求
 )

@@ -59,8 +59,11 @@ func (l *FormatLog) String() string {
 
 	var sb strings.Builder
 	sb.WriteString(GetFormatDate()) // 防止日志粘连
+	sb.WriteString(" ")
 	sb.WriteString(constants.APaaSLogPrefix)
+	sb.WriteString(" ")
 	sb.WriteString(string(jsonContent))
+	sb.WriteString(" ")
 	sb.WriteString(constants.APaaSLogSuffix)
 
 	return sb.String()
@@ -73,4 +76,17 @@ func GetFormatDate() string {
 type SpeedDownMessage struct {
 	Key       string `json:"key"`
 	SleepTime int32  `json:"sleep_time"` // 降速时间，单位：毫秒
+}
+
+type SDKCallLogMessage struct {
+	FaaSPlatform  string `json:"faas_platform,omitempty"` // 函数平台
+	APIName       string `json:"api_name"`                // API名称
+	Language      string `json:"language"`                // 开发语言
+	SDKName       string `json:"sdk_name"`                // SDK名称
+	SDKVersion    string `json:"sdk_version"`             // SDK版本
+	SDKAPI        string `json:"sdk_api"`                 // SDK_API
+	Host          string `json:"host"`                    // 域名
+	HTTPCode      string `json:"http_code"`               // HTTP状态码
+	BizStatusCode string `json:"biz_status_code"`         // 业务状态码
+	Cost          int64  `json:"cost"`                    // 耗时(毫秒)
 }
