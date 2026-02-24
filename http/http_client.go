@@ -17,11 +17,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tidwall/gjson"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/byted-apaas/server-common-go/constants"
 	exp "github.com/byted-apaas/server-common-go/exceptions"
 	"github.com/byted-apaas/server-common-go/utils"
+	"github.com/byted-apaas/server-common-go/utils/format"
 	"github.com/byted-apaas/server-common-go/version"
 )
 
@@ -133,7 +135,7 @@ func (c *HttpClient) getActualDomain(ctx context.Context) string {
 	}
 }
 
-func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
+func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers map[string][]string, reqBody []byte, midList []ReqMiddleWare) ([]byte, map[string]interface{}, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -144,7 +146,7 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		return nil, nil, err
 	}
 
-	// 反压控制
+	// 反压降速控制
 	checkPressureAndDecelerate(ctx)
 
 	// 执行中间件
@@ -182,8 +184,14 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		}
 	}
 
-	// 执行请求
+	start := time.Now()
 	var resp *http.Response
+	var respBody []byte
+	defer func() {
+		c.logRequest(ctx, req, resp, err, reqBody, respBody, start)
+	}()
+
+	// 执行请求
 	_ = utils.InvokeFuncWithRetry(2, 5*time.Millisecond, func() error {
 		if isUseMesh {
 			resp, err = c.MeshClient.Do(req.WithContext(ctx))
@@ -206,22 +214,22 @@ func (c *HttpClient) doRequest(ctx context.Context, req *http.Request, headers m
 		return nil, nil, exp.InternalError("doRequest failed, resp is nil, logid: %v", utils.GetLogIDFromCtx(ctx))
 	}
 
-	extra := c.extractResponseInfo(resp)
+	extra, ctx := c.extractResponseInfo(ctx, resp)
 
 	if resp.Body != nil {
 		defer func() { _ = resp.Body.Close() }()
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	respBody, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, extra, exp.InternalError("doRequest readBody failed, err: %v, logid: %v", err, utils.GetLogIDFromExtra(extra))
+		return nil, extra, exp.InternalError("doRequest readBody failed, err: %v, logid: %v", err, utils.GetLogIDFromCtx(ctx))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, extra, exp.InternalError("doRequest failed, statusCode is %d, logid: %v, data: %s", resp.StatusCode, utils.GetLogIDFromExtra(extra), string(data))
+		return nil, extra, exp.InternalError("doRequest failed, statusCode is %d, logid: %v, respBody: %s", resp.StatusCode, utils.GetLogIDFromCtx(ctx), string(respBody))
 	}
 
-	return data, extra, nil
+	return respBody, extra, nil
 }
 
 func (c *HttpClient) Get(ctx context.Context, path string, headers map[string][]string, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -230,7 +238,7 @@ func (c *HttpClient) Get(ctx context.Context, path string, headers map[string][]
 		return nil, nil, exp.InternalError("HttpClient.Get failed, err: %v", err)
 	}
 
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, nil, midList)
 }
 
 func (c *HttpClient) PostJson(ctx context.Context, path string, headers map[string][]string, data interface{}, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -248,7 +256,7 @@ func (c *HttpClient) PostJson(ctx context.Context, path string, headers map[stri
 		headers = map[string][]string{}
 	}
 	headers[constants.HttpHeaderKeyContentType] = []string{constants.HttpHeaderValueJson}
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, body, midList)
 }
 
 func (c *HttpClient) PostBson(ctx context.Context, path string, headers map[string][]string, data interface{}, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -266,7 +274,7 @@ func (c *HttpClient) PostBson(ctx context.Context, path string, headers map[stri
 		headers = map[string][]string{}
 	}
 	headers[constants.HttpHeaderKeyContentType] = []string{constants.HttpHeaderValueBson}
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, body, midList)
 }
 
 func (c *HttpClient) PostFormData(ctx context.Context, path string, headers map[string][]string, body *bytes.Buffer, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -274,7 +282,7 @@ func (c *HttpClient) PostFormData(ctx context.Context, path string, headers map[
 	if err != nil {
 		return nil, nil, exp.InternalError("HttpClient.PostFormData failed, err: %v", err)
 	}
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, body.Bytes(), midList)
 }
 
 func (c *HttpClient) PatchJson(ctx context.Context, path string, headers map[string][]string, data interface{}, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -292,7 +300,7 @@ func (c *HttpClient) PatchJson(ctx context.Context, path string, headers map[str
 		headers = map[string][]string{}
 	}
 	headers[constants.HttpHeaderKeyContentType] = []string{constants.HttpHeaderValueJson}
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, body, midList)
 }
 
 func (c *HttpClient) DeleteJson(ctx context.Context, path string, headers map[string][]string, data interface{}, midList ...ReqMiddleWare) ([]byte, map[string]interface{}, error) {
@@ -310,7 +318,7 @@ func (c *HttpClient) DeleteJson(ctx context.Context, path string, headers map[st
 		headers = map[string][]string{}
 	}
 	headers[constants.HttpHeaderKeyContentType] = []string{constants.HttpHeaderValueJson}
-	return c.doRequest(ctx, req, headers, midList)
+	return c.doRequest(ctx, req, headers, body, midList)
 }
 
 func (c *HttpClient) appendContextAndHeaders(ctx context.Context, req *http.Request) context.Context {
@@ -367,15 +375,16 @@ func (c *HttpClient) appendContextAndHeaders(ctx context.Context, req *http.Requ
 }
 
 // extractResponseInfo
-func (c *HttpClient) extractResponseInfo(resp *http.Response) map[string]interface{} {
+func (c *HttpClient) extractResponseInfo(ctx context.Context, resp *http.Response) (map[string]interface{}, context.Context) {
 	extra := make(map[string]interface{})
 
 	if resp != nil && resp.Header != nil {
 		logID := resp.Header.Get(constants.HttpHeaderKeyLogID)
 		extra[constants.HttpHeaderKeyLogID] = logID
+		ctx = utils.SetLogIDToCtx(ctx, logID)
 	}
 
-	return extra
+	return extra, ctx
 }
 
 func (c *HttpClient) transferToMeshReq(ctx context.Context, req *http.Request, psm, cluster string) (*http.Request, error) {
@@ -401,7 +410,6 @@ func (c *HttpClient) transferToMeshReq(ctx context.Context, req *http.Request, p
 	return meshReq, nil
 }
 
-// checkPodRateLimit 判断是否需要对当前请求进行单实例限流.
 func (c *HttpClient) checkPodRateLimit(ctx context.Context) error {
 	// 反压信号检测请求，不进行限流
 	if checkPressureSdkReqTag(ctx) {
@@ -422,7 +430,7 @@ func (c *HttpClient) checkPodRateLimit(ctx context.Context) error {
 	}
 
 	// 触发限流，记录日志
-	rateLimitMsg := fmt.Sprintf("Request exceeded the single-instance rate limit of %d attempts per second. Please try again later.", quota)
+	rateLimitMsg := fmt.Sprintf("SDK request exceeded %d QPS per-instance rate limit, please reduce call frequency.", quota)
 	rateLimitLog := utils.NewFormatLog(ctx, utils.LogLevelWarn, constants.RateLimitLogType, rateLimitMsg)
 	if c.rateLimitLogCount < utils.LogCountLimit {
 		c.rateLimitLogCount++
@@ -438,7 +446,69 @@ func (c *HttpClient) checkPodRateLimit(ctx context.Context) error {
 	return nil
 }
 
-// checkPressureAndDecelerate 检查是否需要对当前请求进行反压降速.
+func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *http.Response, reqErr error, reqBody, respBody []byte, startTime time.Time) {
+	// debug 模式跳过日志打印
+	if utils.IsDebug(ctx) {
+		return
+	}
+
+	defer utils.PanicGuard(ctx)
+
+	statusCode := -1
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
+
+	// 简要日志（通过开关控制）
+	if utils.GetSDKCallLogSwitchFromCtx(ctx) {
+		bizStatusCode := gjson.GetBytes(respBody, "code").String()
+		sdkCallLogMsg := utils.SDKCallLogMessage{
+			FaaSPlatform:  utils.GetFaaSPlatform(),
+			APIName:       utils.GetFunctionNameFromCtx(ctx),
+			Language:      utils.GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyFuncLanguage),
+			SDKName:       utils.GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyFromSDKName),
+			SDKVersion:    utils.GetAPaaSPersistFaaSValueFromCtx(ctx, constants.PersistFaaSKeyFromSDKVersion),
+			SDKAPI:        utils.GetApiTimeoutMethodFromCtx(ctx),
+			Host:          req.Host,
+			HTTPCode:      strconv.Itoa(statusCode),
+			BizStatusCode: bizStatusCode,
+			Cost:          time.Since(startTime).Milliseconds(),
+		}
+		logMsgBytes, _ := json.Marshal(sdkCallLogMsg)
+		sdkCallLog := utils.NewFormatLog(ctx, utils.LogLevelInfo, constants.SDKCallLogType, string(logMsgBytes))
+		fmt.Println(sdkCallLog.String())
+	}
+
+	// 详细日志（通过开关控制）
+	if utils.GetSDKCallLogDetailSwitchFromCtx(ctx) {
+		isFileTransfer := isFileTransferRequest(req)
+
+		var sb strings.Builder
+		sb.WriteString(utils.GetFormatDate())
+		sb.WriteString("\n🍓")
+		sb.WriteString(req.Method)
+		sb.WriteString(" ")
+		sb.WriteString(req.URL.String())
+		sb.WriteString(fmt.Sprintf("\n🍋%d %+v %s", statusCode, time.Since(startTime), utils.GetLogIDFromCtx(ctx)))
+		if reqErr != nil {
+			sb.WriteString(fmt.Sprintf("\n❌error: %v", reqErr))
+		}
+		sb.WriteString("\n🍏request header:")
+		sb.WriteString(format.Any(req.Header))
+		sb.WriteString("\n🍏request body:")
+		sb.WriteString(formatBodySafe(reqBody, isFileTransfer))
+		sb.WriteString("\n🍎response header:")
+		respHeader := ""
+		if resp != nil {
+			respHeader = format.Any(resp.Header)
+		}
+		sb.WriteString(respHeader)
+		sb.WriteString("\n🍎response body:")
+		sb.WriteString(formatBodySafe(respBody, isFileTransfer))
+		fmt.Println(sb.String())
+	}
+}
+
 func checkPressureAndDecelerate(ctx context.Context) {
 	// 反压信号检测请求，不进行降速
 	if checkPressureSdkReqTag(ctx) {
@@ -519,4 +589,66 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(ctx con
 		}
 		return conn, nil
 	}
+}
+
+const (
+	KB                 = 1024            // KB
+	MaxSize            = 10 * KB         // 10KB
+	LargeBodyThreshold = 2 * 1024 * 1024 // 2MB
+)
+
+// isFileTransferRequest 判断是否为文件上传/下载请求
+func isFileTransferRequest(req *http.Request) bool {
+	if req == nil || req.URL == nil {
+		return false
+	}
+
+	// 根据 Content-Type 判断
+	contentType := req.Header.Get(constants.HttpHeaderKeyContentType)
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		return true
+	}
+
+	// 根据 URL 路径判断文件上传/下载接口
+	path := req.URL.Path
+	fileTransferPaths := []string{
+		"/attachment/",
+		"/api/attachment/",
+	}
+	for _, p := range fileTransferPaths {
+		if strings.Contains(path, p) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// formatBodySafe 安全地格式化 body，对于大 body 直接返回摘要信息避免 OOM
+func formatBodySafe(v interface{}, isFileTransfer bool) string {
+	if v == nil {
+		return ""
+	}
+
+	// 对于文件传输请求，直接跳过 body 内容
+	if isFileTransfer {
+		if b, ok := v.([]byte); ok {
+			return fmt.Sprintf("[file content, size=%d bytes, skipped]", len(b))
+		}
+		return "[file content, skipped]"
+	}
+
+	// 对于 []byte 类型，先检查长度再格式化
+	if b, ok := v.([]byte); ok {
+		if len(b) > LargeBodyThreshold {
+			return fmt.Sprintf("[large body, size=%d bytes, skipped]", len(b))
+		}
+	}
+
+	str := format.Any(v)
+	if len(str) > MaxSize {
+		return str[:MaxSize] + fmt.Sprintf(">>> 🥥 truncated(%d) > 10KB", len(str))
+	}
+
+	return str
 }
