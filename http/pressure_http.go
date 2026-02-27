@@ -54,6 +54,7 @@ func (c *PressureHttpClient) BatchGetSleeptime(ctx context.Context, keys []strin
 	req := BatchQueryPressureSignalReq{
 		SignalList: keys,
 	}
+	ctx = utils.SetApiTimeoutMethodToCtx(ctx, constants.PressureSDK)
 	path := strings.ReplaceAll(BatchQueryPressureSignalPath, constants.ReplaceNamespace, utils.GetNamespaceFromCtx(ctx))
 	ctx = withPressureSdkReqTag(ctx)
 	body, _, err := GetOpenapiClient().PostJson(ctx, path, nil, &req, AppTokenMiddleware, TenantAndUserMiddleware, ServiceIDMiddleware)
