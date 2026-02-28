@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bytedance/sonic"
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Any retrieves a value from the given map and tries to return a string representation.
 func Any(v interface{}) string {
@@ -57,7 +59,7 @@ func Any(v interface{}) string {
 		return strconv.FormatFloat(t, fmt, prec, bizSize)
 
 	default:
-		b, err := sonic.Marshal(v)
+		b, err := json.Marshal(v)
 		if err != nil {
 			return fmt.Sprintf("%#v", v)
 		}
