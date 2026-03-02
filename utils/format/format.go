@@ -27,6 +27,9 @@ func Any(v interface{}) string {
 		}
 		return *t
 
+	case []byte:
+		return string(t)
+
 	case int:
 		return strconv.Itoa(t)
 
