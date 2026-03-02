@@ -59,8 +59,11 @@ func (l *FormatLog) String() string {
 
 	var sb strings.Builder
 	sb.WriteString(GetFormatDate()) // 防止日志粘连
+	sb.WriteString(" ")
 	sb.WriteString(constants.APaaSLogPrefix)
+	sb.WriteString(" ")
 	sb.WriteString(string(jsonContent))
+	sb.WriteString(" ")
 	sb.WriteString(constants.APaaSLogSuffix)
 
 	return sb.String()
