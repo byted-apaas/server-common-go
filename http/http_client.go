@@ -494,13 +494,13 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 			sb.WriteString(fmt.Sprintf("\n❌error: %v", reqErr))
 		}
 		sb.WriteString("\n🍏request header:")
-		sb.WriteString(format.Any(req.Header))
+		sb.WriteString(formatHeaderSafe(req.Header))
 		sb.WriteString("\n🍏request body:")
 		sb.WriteString(formatBodySafe(reqBody, isFileTransfer))
 		sb.WriteString("\n🍎response header:")
 		respHeader := ""
 		if resp != nil {
-			respHeader = format.Any(resp.Header)
+			respHeader = formatHeaderSafe(resp.Header)
 		}
 		sb.WriteString(respHeader)
 		sb.WriteString("\n🍎response body:")
@@ -622,6 +622,25 @@ func isFileTransferRequest(req *http.Request) bool {
 	}
 
 	return false
+}
+
+// formatHeaderSafe 安全地格式化 header，对敏感信息进行脱敏处理
+func formatHeaderSafe(header http.Header) string {
+	if header == nil {
+		return ""
+	}
+
+	// 复制 header 避免修改原始数据
+	safeHeader := make(http.Header)
+	for k, v := range header {
+		if k == constants.HttpHeaderKeyAuthorization {
+			safeHeader[k] = []string{"***"}
+		} else {
+			safeHeader[k] = v
+		}
+	}
+
+	return format.Any(safeHeader)
 }
 
 // formatBodySafe 安全地格式化 body，对于大 body 直接返回摘要信息避免 OOM
