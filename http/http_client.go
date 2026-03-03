@@ -482,6 +482,7 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 	// 详细日志（通过开关控制）
 	if utils.GetSDKCallLogDetailSwitchFromCtx(ctx) {
 		isFileTransfer := isFileTransferRequest(req)
+		isToken := isTokenRequest(req)
 
 		var sb strings.Builder
 		sb.WriteString(utils.GetFormatDate())
@@ -496,7 +497,7 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 		sb.WriteString("\n🍏request header:")
 		sb.WriteString(formatHeaderSafe(req.Header))
 		sb.WriteString("\n🍏request body:")
-		sb.WriteString(formatBodySafe(reqBody, isFileTransfer))
+		sb.WriteString(formatBodySafe(reqBody, isFileTransfer, isToken))
 		sb.WriteString("\n🍎response header:")
 		respHeader := ""
 		if resp != nil {
@@ -504,7 +505,7 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 		}
 		sb.WriteString(respHeader)
 		sb.WriteString("\n🍎response body:")
-		sb.WriteString(formatBodySafe(respBody, isFileTransfer))
+		sb.WriteString(formatBodySafe(respBody, isFileTransfer, isToken))
 		fmt.Println(sb.String())
 	}
 }
@@ -597,6 +598,15 @@ const (
 	LargeBodyThreshold = 2 * 1024 * 1024 // 2MB
 )
 
+// isTokenRequest 判断是否为获取 token 的请求
+func isTokenRequest(req *http.Request) bool {
+	if req == nil || req.URL == nil {
+		return false
+	}
+
+	return strings.Contains(req.URL.Path, OpenapiPathGetToken)
+}
+
 // isFileTransferRequest 判断是否为文件上传/下载请求
 func isFileTransferRequest(req *http.Request) bool {
 	if req == nil || req.URL == nil {
@@ -643,10 +653,15 @@ func formatHeaderSafe(header http.Header) string {
 	return format.Any(safeHeader)
 }
 
-// formatBodySafe 安全地格式化 body，对于大 body 直接返回摘要信息避免 OOM
-func formatBodySafe(v interface{}, isFileTransfer bool) string {
+// formatBodySafe 安全地格式化 body，对于大 body 直接返回摘要信息避免 OOM，对于 token 请求跳过 body 避免泄露
+func formatBodySafe(v interface{}, isFileTransfer, isToken bool) string {
 	if v == nil {
 		return ""
+	}
+
+	// 对于 token 请求，跳过 body 内容避免 token 泄露
+	if isToken {
+		return "[token request, body skipped]"
 	}
 
 	// 对于文件传输请求，直接跳过 body 内容
