@@ -482,7 +482,8 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 	// 详细日志（通过开关控制）
 	if utils.GetSDKCallLogDetailSwitchFromCtx(ctx) {
 		isFileTransfer := isFileTransferRequest(req)
-		isToken := isTokenRequest(req)
+		// 对于 token 请求，只有成功时才跳过 body 打印，失败时打印 body 便于排查
+		isTokenSuccess := isTokenRequest(req) && isTokenRequestSuccess(statusCode, respBody)
 
 		var sb strings.Builder
 		sb.WriteString(utils.GetFormatDate())
@@ -497,7 +498,7 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 		sb.WriteString("\n🍏request header:")
 		sb.WriteString(formatHeaderSafe(req.Header))
 		sb.WriteString("\n🍏request body:")
-		sb.WriteString(formatBodySafe(reqBody, isFileTransfer, isToken))
+		sb.WriteString(formatBodySafe(reqBody, isFileTransfer, isTokenSuccess))
 		sb.WriteString("\n🍎response header:")
 		respHeader := ""
 		if resp != nil {
@@ -505,7 +506,7 @@ func (c *HttpClient) logRequest(ctx context.Context, req *http.Request, resp *ht
 		}
 		sb.WriteString(respHeader)
 		sb.WriteString("\n🍎response body:")
-		sb.WriteString(formatBodySafe(respBody, isFileTransfer, isToken))
+		sb.WriteString(formatBodySafe(respBody, isFileTransfer, isTokenSuccess))
 		fmt.Println(sb.String())
 	}
 }
@@ -605,6 +606,16 @@ func isTokenRequest(req *http.Request) bool {
 	}
 
 	return strings.Contains(req.URL.Path, OpenapiPathGetToken)
+}
+
+// isTokenRequestSuccess 判断 token 请求是否成功（HTTP 200 且 code 为 "0"）
+func isTokenRequestSuccess(statusCode int, respBody []byte) bool {
+	if statusCode != http.StatusOK {
+		return false
+	}
+
+	bizCode := gjson.GetBytes(respBody, "code").String()
+	return bizCode == "0"
 }
 
 // isFileTransferRequest 判断是否为文件上传/下载请求
