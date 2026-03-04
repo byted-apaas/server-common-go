@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"context"
+	"strings"
 	"time"
+
+	"github.com/byted-apaas/server-common-go/constants"
 )
 
 const (
@@ -28,22 +32,61 @@ type FormatLog struct {
 	LogType       string `json:"log_type"`        // 日志类型
 }
 
+func NewFormatLog(ctx context.Context, level int, logType, message string) *FormatLog {
+	return &FormatLog{
+		Level:         level,
+		EventID:       GetExecuteIDFromCtx(ctx),
+		FunctionAPIID: GetFunctionAPIIDFromCtx(ctx),
+		LogID:         GetLogIDFromCtx(ctx),
+		Timestamp:     time.Now().UnixNano() / 1e3, // 使用微秒
+		TenantID:      GetTenantIDFromCtx(ctx),
+		TenantType:    GetTenantTypeFromCtx(ctx),
+		Namespace:     GetNamespaceFromCtx(ctx),
+		LogType:       logType,
+		Message:       message,
+	}
+}
+
+func (l *FormatLog) String() string {
+	if len(l.Message) > LogLengthLimit {
+		l.Message = l.Message[:LogLengthLimit] + LogLengthLimitTip
+	}
+
+	jsonContent, err := JsonMarshalBytes(l)
+	if err != nil {
+		GetConsoleLogger(l.LogID).Errorf("[Logger] FormatLog String failed, err: %v", err)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(GetFormatDate()) // 防止日志粘连
+	sb.WriteString(" ")
+	sb.WriteString(constants.APaaSLogPrefix)
+	sb.WriteString(" ")
+	sb.WriteString(string(jsonContent))
+	sb.WriteString(" ")
+	sb.WriteString(constants.APaaSLogSuffix)
+
+	return sb.String()
+}
+
 func GetFormatDate() string {
 	return time.Now().Format("2006-01-02")
 }
 
-func GetFormatLogWithMessage(formatLog FormatLog, streamLogCount int64) string {
-	if len(formatLog.Message) > LogLengthLimit {
-		formatLog.Message = formatLog.Message[:LogLengthLimit] + LogLengthLimitTip
-	}
-	if streamLogCount == LogCountLimit {
-		formatLog.Message = formatLog.Message + LogCountLimitTip
-	}
+type SpeedDownMessage struct {
+	Key       string `json:"key"`
+	SleepTime int32  `json:"sleep_time"` // 降速时间，单位：毫秒
+}
 
-	jsonContent, err := JsonMarshalBytes(formatLog)
-	if err != nil {
-		GetConsoleLogger(formatLog.LogID).Errorf("[Logger] getFormatLog failed, err: %v", err)
-	}
-
-	return string(jsonContent)
+type SDKCallLogMessage struct {
+	FaaSPlatform  string `json:"faas_platform,omitempty"` // 函数平台
+	APIName       string `json:"api_name"`                // API名称
+	Language      string `json:"language"`                // 开发语言
+	SDKName       string `json:"sdk_name"`                // SDK名称
+	SDKVersion    string `json:"sdk_version"`             // SDK版本
+	SDKAPI        string `json:"sdk_api"`                 // SDK_API
+	Host          string `json:"host"`                    // 域名
+	HTTPCode      string `json:"http_code"`               // HTTP状态码
+	BizStatusCode string `json:"biz_status_code"`         // 业务状态码
+	Cost          int64  `json:"cost"`                    // 耗时(毫秒)
 }

@@ -331,6 +331,11 @@ func SetApiTimeoutMethodToCtx(ctx context.Context, method string) context.Contex
 	return context.WithValue(ctx, constants.CtxKeyAPITimeoutMethod, method)
 }
 
+func GetApiTimeoutMethodFromCtx(ctx context.Context) string {
+	cast, _ := ctx.Value(constants.CtxKeyAPITimeoutMethod).(string)
+	return cast
+}
+
 func SetUserContext(ctx context.Context, userCtx structs.UserContext) context.Context {
 	return context.WithValue(ctx, constants.CtxUserContext, userCtx)
 }
@@ -748,4 +753,22 @@ func GetAPaaSPersistFaaSPressureSignalId(ctx context.Context) string {
 	}
 
 	return value
+}
+
+func SetSDKCallLogSwitchToCtx(ctx context.Context, switchOn bool) context.Context {
+	return context.WithValue(ctx, constants.HeaderSDKCallLog, switchOn)
+}
+
+func GetSDKCallLogSwitchFromCtx(ctx context.Context) bool {
+	cast, _ := ctx.Value(constants.HeaderSDKCallLog).(bool)
+	return cast
+}
+
+func SetSDKCallLogDetailSwitchToCtx(ctx context.Context, switchOn bool) context.Context {
+	return context.WithValue(ctx, constants.HeaderSDKCallLogDetail, switchOn)
+}
+
+func GetSDKCallLogDetailSwitchFromCtx(ctx context.Context) bool {
+	cast, _ := ctx.Value(constants.HeaderSDKCallLogDetail).(bool)
+	return cast
 }

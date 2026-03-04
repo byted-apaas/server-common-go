@@ -94,6 +94,8 @@ const (
 	RequestMongodb          = "faasinfra_requestMongodb"
 	RequestFile             = "faasinfra_requestFile"
 	RequestRedis            = "faasinfra_requestRedis"
+
+	PressureSDK = "openapi_pressure_sdk"
 )
 
 // APITimeoutMapDefault millSeconds
